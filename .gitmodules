@@ -1,0 +1,9 @@
+[submodule "deps/min-devkit"]
+	path = deps/min-devkit
+	url = https://github.com/Cycling74/min-devkit.git
+[submodule "deps/simde"]
+	path = deps/simde
+	url = https://github.com/simd-everywhere/simde
+[submodule "deps/r8brain-free-src"]
+	path = deps/r8brain-free-src
+	url = https://github.com/avaneev/r8brain-free-src
