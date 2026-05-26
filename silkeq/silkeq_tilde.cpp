@@ -1,11 +1,10 @@
 #include "dsp/silkeq_dsp.h"
-#include "stereo_os_base.h"
 #include "oversample.h"
+#include "stereo_os_base.h"
 
 using namespace c74::min;
 
 class silkeq_tilde : public object<silkeq_tilde>,
-                     
                      public StereoOsBase<silkeq_tilde> {
  public:
   MIN_DESCRIPTION{"Silk EQ: Analog emulation EQ with transformer saturation"};
@@ -28,9 +27,7 @@ class silkeq_tilde : public object<silkeq_tilde>,
 
   void PreProcess() { dsp_.SetParameters(params_); }
 
-  void ProcessBlock(double* l, double* r, int n) {
-    dsp_.ProcessBlock(l, r, n);
-  }
+  void ProcessBlock(double* l, double* r, int n) { dsp_.ProcessBlock(l, r, n); }
 
   attribute<double> hf_gain{
       this, "hf_gain", 0.0, description{"High-frequency shelf gain in dB."},
@@ -143,16 +140,17 @@ return {v};
 }
 ;
 
-message<> dspsetup{this, "dspsetup",
-                   MIN_FUNCTION{
-const int latency = DspSetup(static_cast<double>(args[0]),
-                             static_cast<int>(args[1]),
-                             static_cast<int>(oversample));
+message<> dspsetup{
+    this, "dspsetup",
+    MIN_FUNCTION{const int latency = DspSetup(static_cast<double>(args[0]),
+                                              static_cast<int>(args[1]),
+                                              static_cast<int>(oversample));
 out_status.send("latency", latency);
 return {latency};
 }
 }
 ;
-};
+}
+;
 
 MIN_EXTERNAL(silkeq_tilde);

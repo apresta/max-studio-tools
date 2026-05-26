@@ -1,11 +1,10 @@
 #include "dsp/bloomeq_dsp.h"
-#include "stereo_os_base.h"
 #include "oversample.h"
+#include "stereo_os_base.h"
 
 using namespace c74::min;
 
 class bloomeq_tilde : public object<bloomeq_tilde>,
-                      
                       public StereoOsBase<bloomeq_tilde> {
  public:
   MIN_DESCRIPTION{"Bloom EQ: Analog emulation EQ with boost/cut filters"};
@@ -28,9 +27,7 @@ class bloomeq_tilde : public object<bloomeq_tilde>,
 
   void PreProcess() { eq_.SetParameters(params_); }
 
-  void ProcessBlock(double* l, double* r, int n) {
-    eq_.ProcessBlock(l, r, n);
-  }
+  void ProcessBlock(double* l, double* r, int n) { eq_.ProcessBlock(l, r, n); }
 
   attribute<number> lo_boost{
       this, "lo_boost", bloomeq_dsp::kMinKnob, title{"Low Boost Amount"},
@@ -187,11 +184,11 @@ return {v};
 }
 ;
 
-message<> dspsetup{this, "dspsetup",
-                   MIN_FUNCTION{
-const int latency = DspSetup(static_cast<double>(args[0]),
-                             static_cast<int>(args[1]),
-                             static_cast<int>(oversample));
+message<> dspsetup{
+    this, "dspsetup",
+    MIN_FUNCTION{const int latency = DspSetup(static_cast<double>(args[0]),
+                                              static_cast<int>(args[1]),
+                                              static_cast<int>(oversample));
 out_status.send("latency", latency);
 return {latency};
 }
