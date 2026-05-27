@@ -39,7 +39,6 @@ class StereoOsBase : public c74::min::vector_operator<> {
   int DspSetup(double sr, int vs, int os_idx) {
     sr_ = sr;
     vs_ = vs;
-    dsp::SetFlushToZero();
     return PrepareAll(sr, vs, os_idx);
   }
 

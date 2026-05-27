@@ -6,19 +6,17 @@
 #include <cmath>
 
 #include "dsp_math.h"
+#include "vec.h"
 
 namespace {
 
-// Apply sin(x*|x|)/|x| saturation to two independent channels.
-inline void SaturateScalar(double& L, double& R, double g) noexcept {
-  L *= g;
-  R *= g;
-
-  const double aL = std::fabs(L);
-  const double aR = std::fabs(R);
-
-  if (aL > 0.0) L = std::sin(L * aL) / aL;
-  if (aR > 0.0) R = std::sin(R * aR) / aR;
+// Apply sin(x*|x|)/|x| saturation to a stereo pair.
+inline dsp::Vec2 SaturateVec(dsp::Vec2 s, double g) noexcept {
+  s = s * g;
+  const dsp::Vec2 a      = dsp::abs(s);
+  const dsp::Vec2 afloor = dsp::max(a, 1e-18);  // prevent /0; sin(x)/x -> 1 near 0
+  const dsp::Vec2 arg    = s * afloor;
+  return dsp::Vec2{std::sin(arg.l()), std::sin(arg.r())} / afloor;
 }
 
 }  // namespace
@@ -32,12 +30,9 @@ void Spiral2::ProcessBlock(double* left, double* right,
   const double g = t * t;
 
   for (int i = 0; i < num_frames; ++i) {
-    double L = dsp::ZapDenormal(left[i]);
-    double R = dsp::ZapDenormal(right[i]);
-
-    SaturateScalar(L, R, g);
-
-    left[i] = L;
-    right[i] = R;
+    const dsp::Vec2 dry{left[i], right[i]};
+    const dsp::Vec2 wet = SaturateVec(dry, g);
+    left[i]  = wet.l();
+    right[i] = wet.r();
   }
 }

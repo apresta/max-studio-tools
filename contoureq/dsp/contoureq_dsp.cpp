@@ -1,5 +1,7 @@
 #include "contoureq_dsp.h"
 
+#include "denormal_guard.h"
+
 namespace contoureq_dsp {
 
 void Processor::Prepare(double sample_rate) {
@@ -34,6 +36,7 @@ void Processor::SetParameters(const Parameters& p) {
 }
 
 void Processor::ProcessBlock(double* out_l, double* out_r, int frames) {
+  ScopedDenormalGuard denormal_guard;
   if (frames == 0) return;
 
   if (params_.phase_inv) {

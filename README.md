@@ -10,7 +10,7 @@ It includes the following device emulations:
 - Focus EQ: Solid state equalizer with precise control and console saturation
 - Silk EQ: Smooth, musical equalizer with transformer saturation
 
-Each device supports vectorized computations on modern CPUs, and optional oversampling.
+Each device supports optional oversampling up to 8x.
 
 The build script has been tested on MacOS. Windows cross-compilation is
 supported via mingw-w64.
@@ -19,7 +19,6 @@ Dependencies:
 
 - <https://cmake.org>
 - <https://github.com/Cycling74/min-devkit>
-- <https://github.com/simd-everywhere/simde>
 - <https://github.com/avaneev/r8brain-free-src>
 - <https://clang.llvm.org/> (for MacOS build)
 - <https://github.com/mstorsjo/llvm-mingw> (for Windows build)

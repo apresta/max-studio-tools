@@ -24,9 +24,7 @@ class focuseq_tilde : public object<focuseq_tilde>,
 
  public:
   void PrepareEngine(double os_sr) {
-    const int max_os_frames = vs_ * os_.ratio();
     eq_.Prepare(os_sr);
-    eq_.EnsureCapacity(max_os_frames);
   }
 
   void PreProcess() { eq_.SetParameters(params_); }

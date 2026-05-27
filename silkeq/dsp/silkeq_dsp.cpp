@@ -1,5 +1,7 @@
 #include "silkeq_dsp.h"
 
+#include "denormal_guard.h"
+
 #include <cassert>
 #include <cmath>
 
@@ -126,6 +128,7 @@ void Processor::SetParameters(const Parameters& p) {
 
 void Processor::ProcessBlock(double* out_l, double* out_r,
                              int num_frames) noexcept {
+  ScopedDenormalGuard denormal_guard;
   if (num_frames == 0) return;
 
   // Block-rate parameter smoothing.

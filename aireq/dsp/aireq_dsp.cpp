@@ -5,9 +5,8 @@
 
 #include <cassert>
 #include <cmath>
-#include <cstring>
 
-#include "vec.h"
+#include "denormal_guard.h"
 
 namespace {
 
@@ -34,20 +33,11 @@ AirEqDsp::AirEqDsp() : sample_rate_(CoeffCreator::k44100) {
 }
 
 void AirEqDsp::SetParameters(const Params& p) noexcept {
-  // Update high-shelf filter if the frequency selector changed.
   if (p.high_shelf != params_.high_shelf) {
     params_.high_shelf = p.high_shelf;
     SetupFilter(kShelfHi);
   }
   params_ = p;
-}
-
-void AirEqDsp::EnsureCapacity(int block_size) {
-  if (block_size <= capacity_) return;
-  capacity_ = block_size;
-  const std::size_t n = static_cast<std::size_t>(capacity_) * 2;
-  for (auto& v : band_data_) v.resize(n);
-  interleaved_.resize(n);
 }
 
 void AirEqDsp::Prepare(double sample_rate) noexcept {
@@ -57,15 +47,7 @@ void AirEqDsp::Prepare(double sample_rate) noexcept {
 }
 
 void AirEqDsp::ProcessBlock(double* out_l, double* out_r, int num_frames) {
-  assert(num_frames <= capacity_);
-
-  // Interleave planar input into the scratch buffer.
-  double* buf = interleaved_.data();
-  for (int i = 0; i < num_frames; ++i) {
-    buf[2 * i] = out_l[i];
-    buf[2 * i + 1] = out_r[i];
-  }
-
+  ScopedDenormalGuard denormal_guard;
   double g[kNumTypes];
   double pg[kNumTypes];
 
@@ -97,66 +79,43 @@ void AirEqDsp::ProcessBlock(double* out_l, double* out_r, int num_frames) {
     pg[kShelfHi] = 1.0;
   }
 
-  if (params_.phase_inv) {
-    for (int i = 0; i < num_frames; ++i) {
-      const dsp::Vec2 v = -dsp::Vec2(buf[2 * i], buf[2 * i + 1]);
-      buf[2 * i] = v.l();
-      buf[2 * i + 1] = v.r();
-    }
-  }
-
-  const std::size_t byte_count =
-      sizeof(double) * static_cast<std::size_t>(num_frames) * 2;
-
-  // Each band needs its own copy of the interleaved input because the biquads
-  // run independently and accumulate into separate buffers before the final
-  // weighted mix.
   double dc_gain = 0.0;
-  for (int i = 0; i < kNumTypes; ++i) {
-    double* data = band_data_[i].data();
-    std::memcpy(data, buf, byte_count);
-    biquads_[i].ProcessBlock(data, num_frames);
-    if (i != kShelfHi || params_.high_shelf != kHighOff) dc_gain += g[i];
+  for (int n = 0; n < kNumTypes; ++n) {
+    if (n != kShelfHi || params_.high_shelf != kHighOff) dc_gain += g[n];
   }
 
   const double global_gain =
       params_.keep_gain ? kGainNormKept / dc_gain : kGainNorm;
   const double shelf_weight = (params_.high_shelf != kHighOff) ? 1.0 : 0.0;
 
-  dsp::Vec2 vg[kNumTypes], vpg[kNumTypes];
-  for (int n = 0; n < kNumTypes; ++n) {
-    vg[n] = dsp::Vec2(g[n]);
-    vpg[n] = dsp::Vec2(pg[n]);
-  }
-  const dsp::Vec2 vgg(global_gain);
-  const dsp::Vec2 vsw(shelf_weight);
-  const dsp::Vec2 vghi = vg[kShelfHi] * vsw;
-
   for (int i = 0; i < num_frames; ++i) {
-    const dsp::Vec2 dry(buf[2 * i], buf[2 * i + 1]);
+    double l = out_l[i];
+    double r = out_r[i];
 
-    dsp::Vec2 mix = (dsp::Vec2(band_data_[kShelfHi][2 * i],
-                               band_data_[kShelfHi][2 * i + 1]) *
-                         vpg[kShelfHi] +
-                     dry) *
-                    vghi;
-
-    for (int n = 0; n < kShelfHi; ++n) {
-      mix = mix + (dsp::Vec2(band_data_[n][2 * i], band_data_[n][2 * i + 1]) *
-                       vpg[n] +
-                   dry) *
-                      vg[n];
+    if (params_.phase_inv) {
+      l = -l;
+      r = -r;
     }
 
-    const dsp::Vec2 out = mix * vgg;
-    buf[2 * i] = out.l();
-    buf[2 * i + 1] = out.r();
-  }
+    const dsp::Vec2 dry(l, r);
 
-  // Deinterleave scratch buffer back to planar output.
-  for (int i = 0; i < num_frames; ++i) {
-    out_l[i] = buf[2 * i];
-    out_r[i] = buf[2 * i + 1];
+    // Run each band's biquad on this one sample, then accumulate the mix.
+    dsp::Vec2 mix(0.0, 0.0);
+
+    // High shelf band (conditionally weighted).
+    {
+      const dsp::Vec2 band = biquads_[kShelfHi].Tick(dry);
+      mix = (band * pg[kShelfHi] + dry) * (g[kShelfHi] * shelf_weight);
+    }
+
+    for (int n = 0; n < kShelfHi; ++n) {
+      const dsp::Vec2 band = biquads_[n].Tick(dry);
+      mix = mix + (band * pg[n] + dry) * g[n];
+    }
+
+    const dsp::Vec2 out = mix * global_gain;
+    out_l[i] = out.l();
+    out_r[i] = out.r();
   }
 }
 

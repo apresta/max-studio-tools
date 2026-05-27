@@ -62,9 +62,8 @@ void Tube2::ProcessBlock(double* out_l, double* out_r, int num_samples,
 
   for (int i = 0; i < num_samples; ++i) {
 
-    // Load with denormal guard.
-    double s_l = dsp::ZapDenormal(out_l[i]);
-    double s_r = dsp::ZapDenormal(out_r[i]);
+    double s_l = out_l[i];
+    double s_r = out_r[i];
 
     Vec2 s(s_l, s_r);
 

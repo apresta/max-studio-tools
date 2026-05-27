@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cassert>
-#include <vector>
 
 #include "Spiral2.h"
 #include "but_filter.h"
@@ -51,12 +50,7 @@ class FocusEqDsp {
   // Reset all filter state and recompute coefficients for sample_rate.
   void Prepare(double sample_rate) noexcept;
 
-  // Pre-allocate the interleaved scratch buffer for up to block_size frames.
-  // Must be called from the prepare/setup path, never from the audio thread.
-  void EnsureCapacity(int block_size);
-
   // Process num_frames stereo frames in-place.
-  // EnsureCapacity(num_frames) must have been called beforehand.
   void ProcessBlock(double* out_l, double* out_r, int num_frames) noexcept;
 
  private:
@@ -66,9 +60,6 @@ class FocusEqDsp {
   void UpdateLowMidCoeffs() noexcept;
   void UpdateHighMidCoeffs() noexcept;
   void UpdateHighCoeffs() noexcept;
-
-  /// Interleaved-buffer ProcessBlock used internally.
-  void ProcessInterleaved(double* buf, int num_frames) noexcept;
 
   // Inputs that were last fed into each Update*Coeffs() call.
   // Each Update* checks these before calling into biquad_coeffs.h and skips
@@ -110,9 +101,4 @@ class FocusEqDsp {
   double sample_rate_{44100.0};
   Parameters params_;
   Computed last_computed_;
-
-  // Interleaved scratch buffer for the Vec2-based biquad inner loop.
-  // Sized to 2 * capacity_ doubles; pre-allocated by EnsureCapacity().
-  std::vector<double> interleaved_;
-  int capacity_{0};
 };

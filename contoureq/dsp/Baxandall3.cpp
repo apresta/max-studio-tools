@@ -8,6 +8,7 @@
 #include <cmath>
 
 #include "dsp_math.h"
+#include "vec.h"
 
 using dsp::Vec2;
 
@@ -85,17 +86,13 @@ void Baxandall3::UpdateCoefficients() noexcept {
 
 void Baxandall3::ProcessSample(double& left, double& right,
                                const CoeffVec2& cv) noexcept {
-  // Denormal guard.
-  double s_l = dsp::ZapDenormal(left);
-  double s_r = dsp::ZapDenormal(right);
-
-  // Console5 encode: soft-clip input via sin() to prevent inter-stage
-  // overs while preserving waveform shape at low levels.
-  const double half_pi = dsp::kPi * 0.5;
-  s_l = std::sin(std::fmax(std::fmin(s_l * cv.input_g.l(), half_pi), -half_pi));
-  s_r = std::sin(std::fmax(std::fmin(s_r * cv.input_g.r(), half_pi), -half_pi));
-
-  const Vec2 in(s_l, s_r);
+  // Console5 encode: soft-clip input via sin(), decode via asin().
+  const Vec2 in = [&]() noexcept {
+    const double half_pi = dsp::kPi * 0.5;
+    const Vec2 raw(left, right);
+    const Vec2 clamped = dsp::max(dsp::min(raw * cv.input_g, half_pi), -half_pi);
+    return Vec2{std::sin(clamped.l()), std::sin(clamped.r())};
+  }();
 
   // Interleaved biquad (L and R processed in parallel via Vec2).
   // Alternating banks (flip_) gives a subtly decorrelated character.
@@ -129,11 +126,12 @@ void Baxandall3::ProcessSample(double& left, double& right,
   const Vec2 out = treble * cv.treble_g + bass * cv.bass_g;
 
   // Console5 decode: asin() inverts the encode sin(), restoring headroom.
-  // kSoftClipCeiling guards against asin(x) domain error at |x| == 1.
-  left = std::asin(std::fmax(std::fmin(out.l(), dsp::kSoftClipCeiling),
-                             -dsp::kSoftClipCeiling));
-  right = std::asin(std::fmax(std::fmin(out.r(), dsp::kSoftClipCeiling),
-                              -dsp::kSoftClipCeiling));
+  {
+    const double cl = std::max(std::min(out.l(),  dsp::kSoftClipCeiling), -dsp::kSoftClipCeiling);
+    const double cr = std::max(std::min(out.r(),  dsp::kSoftClipCeiling), -dsp::kSoftClipCeiling);
+    left  = std::asin(cl);
+    right = std::asin(cr);
+  }
 }
 
 void Baxandall3::ProcessBlock(double* left, double* right,
@@ -142,7 +140,7 @@ void Baxandall3::ProcessBlock(double* left, double* right,
 
   if (coeffs_dirty_) UpdateCoefficients();
 
-  // Hoist all per-block scalings here so ProcessSample stays branch-free.
+  // Hoist invariant coefficient setup out of the sample loop.
   const CoeffVec2 cv{
       Vec2(h_coeffs_.a0),
       Vec2(h_coeffs_.a1),

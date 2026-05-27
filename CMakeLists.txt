@@ -14,8 +14,6 @@ set(MAX_EXTERNALS_DIR
   CACHE PATH "Output directory for Max externals")
 set(LLVM_MINGW_PREFIX "${CMAKE_SOURCE_DIR}/deps/llvm-mingw" CACHE PATH
   "llvm-mingw cross-compiler prefix")
-set(SIMDE_PATH "${CMAKE_SOURCE_DIR}/deps/simde" CACHE PATH
-  "Path to simde headers")
 set(R8BRAIN_PATH "${CMAKE_SOURCE_DIR}/deps/r8brain-free-src" CACHE PATH
   "Path to r8brain headers")
 
@@ -68,12 +66,6 @@ if(NOT EXISTS "${MIN_API_PATH}/include/c74_min.h")
     "Run build.sh to initialize submodules, or pass -DMIN_DEVKIT_PATH=<path>.")
 endif()
 
-if(APPLE AND NOT EXISTS "${SIMDE_PATH}/simde/x86/sse2.h")
-  message(FATAL_ERROR
-    "simde not found at '${SIMDE_PATH}'.\n"
-    "Run: git submodule update --init --recursive")
-endif()
-
 if(APPLE AND NOT EXISTS "${R8BRAIN_PATH}/r8bbase.h")
   message(FATAL_ERROR
     "r8brain-free-src not found at '${R8BRAIN_PATH}'.\n"
@@ -95,7 +87,7 @@ function(configure_target target)
   target_compile_options(${target} PRIVATE
     -O3 -ffast-math -fno-finite-math-only -Wall -Wextra -Wno-unused-parameter)
   target_include_directories(${target} SYSTEM PRIVATE ${_MIN_INCLUDES}
-    ${SIMDE_PATH} ${R8BRAIN_PATH})
+    ${R8BRAIN_PATH})
 
   if(APPLE)
     set_target_properties(${target} PROPERTIES

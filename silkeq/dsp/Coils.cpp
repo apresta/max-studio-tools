@@ -7,6 +7,7 @@
 #include <cmath>
 
 #include "dsp_math.h"
+#include "vec.h"
 
 using dsp::Vec2;
 
@@ -71,9 +72,8 @@ void Coils::ProcessBlock(double* outL, double* outR, int num_samples) noexcept {
 
   for (int i = 0; i < num_samples; ++i) {
 
-    // Load with denormal guard.
-    const double sL = dsp::ZapDenormal(inL[i]);
-    const double sR = dsp::ZapDenormal(inR[i]);
+    const double sL = inL[i];
+    const double sR = inR[i];
 
     const Vec2 dry(sL, sR);
 
@@ -87,7 +87,8 @@ void Coils::ProcessBlock(double* outL, double* outR, int num_samples) noexcept {
     // sin() distortion applied to the out-of-band (high-energy) content.
     // The band content bypasses distortion to preserve low-frequency detail.
     const Vec2 arg = (dry - band) * drive_scale + v_offset;
-    outL[i] = band.l() + (std::sin(arg.l()) - sin_offset) * output_compensation;
-    outR[i] = band.r() + (std::sin(arg.r()) - sin_offset) * output_compensation;
+    const Vec2 sat{std::sin(arg.l()), std::sin(arg.r())};
+    outL[i] = band.l() + (sat.l() - sin_offset) * output_compensation;
+    outR[i] = band.r() + (sat.r() - sin_offset) * output_compensation;
   }
 }

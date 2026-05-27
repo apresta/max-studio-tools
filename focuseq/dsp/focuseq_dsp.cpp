@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include "biquad_coeffs.h"
+#include "denormal_guard.h"
 
 FocusEqDsp::FocusEqDsp() {
   // Initialize both Butterworth filters at defaults.
@@ -181,12 +182,6 @@ void FocusEqDsp::UpdateHighCoeffs() noexcept {
   lc.high_shape = params_.high_shape;
 }
 
-void FocusEqDsp::EnsureCapacity(int block_size) {
-  if (block_size <= capacity_) return;
-  capacity_ = block_size;
-  interleaved_.resize(static_cast<std::size_t>(capacity_) * 2);
-}
-
 void FocusEqDsp::Prepare(double sample_rate) noexcept {
   sample_rate_ = sample_rate;
 
@@ -211,6 +206,7 @@ void FocusEqDsp::Prepare(double sample_rate) noexcept {
 
 void FocusEqDsp::ProcessBlock(double* out_l, double* out_r,
                               int num_frames) noexcept {
+  ScopedDenormalGuard denormal_guard;
   assert(out_l && out_r);
   assert(num_frames >= 0);
 
@@ -221,55 +217,25 @@ void FocusEqDsp::ProcessBlock(double* out_l, double* out_r,
     }
   }
 
-  assert(num_frames <= capacity_);
-
-  // Interleave out_l, out_r -> [L_0, R_0, L_1, R_1, ...].
-  for (int i = 0; i < num_frames; ++i) {
-#if defined(DSP_USE_SIMDE)
-    _mm_storeu_pd(&interleaved_[2 * i], _mm_set_pd(out_r[i], out_l[i]));
-#else
-    interleaved_[2 * i] = out_l[i];
-    interleaved_[2 * i + 1] = out_r[i];
-#endif
-  }
-
-  ProcessInterleaved(interleaved_.data(), num_frames);
-
-  // De-interleave [L_0, R_0, ...] -> planar out_l, out_r.
-  for (int i = 0; i < num_frames; ++i) {
-#if defined(DSP_USE_SIMDE)
-    const __m128d v = _mm_loadu_pd(&interleaved_[2 * i]);
-    _mm_storel_pd(&out_l[i], v);
-    _mm_storeh_pd(&out_r[i], v);
-#else
-    out_l[i] = interleaved_[2 * i];
-    out_r[i] = interleaved_[2 * i + 1];
-#endif
-  }
-
-  // Saturation.
-  if (params_.sat_enable) sat_.ProcessBlock(out_l, out_r, num_frames);
-}
-
-void FocusEqDsp::ProcessInterleaved(double* buf, int num_frames) noexcept {
-  using dsp::Vec2;
-
   // HPF and LPF.
   if (params_.hpf_enabled || params_.lpf_enabled) {
     for (int i = 0; i < num_frames; ++i) {
-      Vec2 x{buf[2 * i], buf[2 * i + 1]};
+      dsp::Vec2 x{out_l[i], out_r[i]};
       if (params_.hpf_enabled) x = hpf_.Process(x);
       if (params_.lpf_enabled) x = lpf_.Process(x);
-      buf[2 * i] = x.l();
-      buf[2 * i + 1] = x.r();
+      out_l[i] = x.l();
+      out_r[i] = x.r();
     }
   }
 
   // EQ bands.
   if (params_.eq_enable) {
-    low_bq_.ProcessBlock(buf, num_frames);
-    lomid_bq_.ProcessBlock(buf, num_frames);
-    himid_bq_.ProcessBlock(buf, num_frames);
-    high_bq_.ProcessBlock(buf, num_frames);
+    low_bq_.ProcessBlock(out_l, out_r, num_frames);
+    lomid_bq_.ProcessBlock(out_l, out_r, num_frames);
+    himid_bq_.ProcessBlock(out_l, out_r, num_frames);
+    high_bq_.ProcessBlock(out_l, out_r, num_frames);
   }
+
+  // Saturation.
+  if (params_.sat_enable) sat_.ProcessBlock(out_l, out_r, num_frames);
 }

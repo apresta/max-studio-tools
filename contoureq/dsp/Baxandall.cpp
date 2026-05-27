@@ -7,6 +7,7 @@
 #include <cmath>
 
 #include "dsp_math.h"
+#include "vec.h"
 
 using dsp::Vec2;
 
@@ -85,20 +86,11 @@ void Baxandall::UpdateCoefficients() noexcept {
 
 void Baxandall::ProcessSample(double& left, double& right,
                               const CoeffVec2& cv) noexcept {
-  // Denormal guard.
-  double s_l = dsp::ZapDenormal(left);
-  double s_r = dsp::ZapDenormal(right);
+  const double s_l = left  * cv.output_g.l();
+  const double s_r = right * cv.output_g.r();
 
-  // Output trim applied before encode, in case Console stage clips.
-  s_l *= cv.output_g.l();
-  s_r *= cv.output_g.r();
-
-  // Console5 encode: sin() soft-clips the input while preserving waveform
-  // shape at low levels. The decode asin() below inverts this exactly.
-  s_l = std::sin(s_l);
-  s_r = std::sin(s_r);
-
-  const Vec2 in(s_l, s_r);
+  // Console5 encode: sin() soft-clips the input, decode asin() inverts it.
+  const Vec2 in{std::sin(s_l), std::sin(s_r)};
 
   // Interleaved biquad. Alternating banks (flip_) decorrelates the filter
   // paths slightly for a more organic, less clinical character.
@@ -132,11 +124,12 @@ void Baxandall::ProcessSample(double& left, double& right,
   const Vec2 out = treble * cv.treble_g + bass * cv.bass_g;
 
   // Console5 decode: asin() inverts the encode sin(), restoring headroom.
-  // kSoftClipCeiling guards against asin(x) domain error at |x| == 1.
-  left = std::asin(std::fmax(std::fmin(out.l(), dsp::kSoftClipCeiling),
-                             -dsp::kSoftClipCeiling));
-  right = std::asin(std::fmax(std::fmin(out.r(), dsp::kSoftClipCeiling),
-                              -dsp::kSoftClipCeiling));
+  {
+    const double cl = std::max(std::min(out.l(),  dsp::kSoftClipCeiling), -dsp::kSoftClipCeiling);
+    const double cr = std::max(std::min(out.r(),  dsp::kSoftClipCeiling), -dsp::kSoftClipCeiling);
+    left  = std::asin(cl);
+    right = std::asin(cr);
+  }
 }
 
 void Baxandall::ProcessBlock(double* left, double* right,
@@ -145,7 +138,7 @@ void Baxandall::ProcessBlock(double* left, double* right,
 
   if (coeffs_dirty_) UpdateCoefficients();
 
-  // Hoist all per-block scalings here so ProcessSample stays branch-free.
+  // Hoist invariant coefficient setup out of the sample loop.
   // treble_g and bass_g are the independent dB-linear band gains.
   const CoeffVec2 cv{
       Vec2(h_coeffs_.a0),
