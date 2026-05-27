@@ -1,9 +1,9 @@
 #include "silkeq_dsp.h"
 
-#include "denormal_guard.h"
-
 #include <cassert>
 #include <cmath>
+
+#include "denormal_guard.h"
 
 namespace silkeq_dsp {
 

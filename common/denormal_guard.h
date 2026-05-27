@@ -14,7 +14,7 @@ class ScopedDenormalGuard {
 #elif defined(__ARM_NEON) || defined(__aarch64__)
     asm volatile("mrs %0, fpcr" : "=r"(original_state_));
     // Bit 24 = Flush-to-Zero (FZ)
-    asm volatile("msr fpcr, %0" :: "r"(original_state_ | (1 << 24)));
+    asm volatile("msr fpcr, %0" ::"r"(original_state_ | (1 << 24)));
 #endif
   }
 
@@ -22,7 +22,7 @@ class ScopedDenormalGuard {
 #if defined(_M_X64) || defined(__x86_64__) || defined(__i386__)
     _mm_setcsr(original_state_);
 #elif defined(__ARM_NEON) || defined(__aarch64__)
-    asm volatile("msr fpcr, %0" :: "r"(original_state_));
+    asm volatile("msr fpcr, %0" ::"r"(original_state_));
 #endif
   }
 

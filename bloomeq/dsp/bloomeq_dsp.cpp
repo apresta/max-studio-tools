@@ -3,9 +3,9 @@
 
 #include "bloomeq_dsp.h"
 
-#include "denormal_guard.h"
-
 #include <cassert>
+
+#include "denormal_guard.h"
 
 namespace bloomeq_dsp {
 

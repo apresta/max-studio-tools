@@ -86,7 +86,7 @@ void Baxandall::UpdateCoefficients() noexcept {
 
 void Baxandall::ProcessSample(double& left, double& right,
                               const CoeffVec2& cv) noexcept {
-  const double s_l = left  * cv.output_g.l();
+  const double s_l = left * cv.output_g.l();
   const double s_r = right * cv.output_g.r();
 
   // Console5 encode: sin() soft-clips the input, decode asin() inverts it.
@@ -125,9 +125,11 @@ void Baxandall::ProcessSample(double& left, double& right,
 
   // Console5 decode: asin() inverts the encode sin(), restoring headroom.
   {
-    const double cl = std::max(std::min(out.l(),  dsp::kSoftClipCeiling), -dsp::kSoftClipCeiling);
-    const double cr = std::max(std::min(out.r(),  dsp::kSoftClipCeiling), -dsp::kSoftClipCeiling);
-    left  = std::asin(cl);
+    const double cl = std::max(std::min(out.l(), dsp::kSoftClipCeiling),
+                               -dsp::kSoftClipCeiling);
+    const double cr = std::max(std::min(out.r(), dsp::kSoftClipCeiling),
+                               -dsp::kSoftClipCeiling);
+    left = std::asin(cl);
     right = std::asin(cr);
   }
 }

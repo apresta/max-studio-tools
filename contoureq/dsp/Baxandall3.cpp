@@ -90,7 +90,8 @@ void Baxandall3::ProcessSample(double& left, double& right,
   const Vec2 in = [&]() noexcept {
     const double half_pi = dsp::kPi * 0.5;
     const Vec2 raw(left, right);
-    const Vec2 clamped = dsp::max(dsp::min(raw * cv.input_g, half_pi), -half_pi);
+    const Vec2 clamped =
+        dsp::max(dsp::min(raw * cv.input_g, half_pi), -half_pi);
     return Vec2{std::sin(clamped.l()), std::sin(clamped.r())};
   }();
 
@@ -127,9 +128,11 @@ void Baxandall3::ProcessSample(double& left, double& right,
 
   // Console5 decode: asin() inverts the encode sin(), restoring headroom.
   {
-    const double cl = std::max(std::min(out.l(),  dsp::kSoftClipCeiling), -dsp::kSoftClipCeiling);
-    const double cr = std::max(std::min(out.r(),  dsp::kSoftClipCeiling), -dsp::kSoftClipCeiling);
-    left  = std::asin(cl);
+    const double cl = std::max(std::min(out.l(), dsp::kSoftClipCeiling),
+                               -dsp::kSoftClipCeiling);
+    const double cr = std::max(std::min(out.r(), dsp::kSoftClipCeiling),
+                               -dsp::kSoftClipCeiling);
+    left = std::asin(cl);
     right = std::asin(cr);
   }
 }

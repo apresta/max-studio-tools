@@ -23,9 +23,7 @@ class aireq_tilde : public object<aireq_tilde>,
   AirEqDsp::Params params_;
 
  public:
-  void PrepareEngine(double os_sr) {
-    eq_.Prepare(os_sr);
-  }
+  void PrepareEngine(double os_sr) { eq_.Prepare(os_sr); }
 
   void PreProcess() { eq_.SetParameters(params_); }
 
