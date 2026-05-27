@@ -12,6 +12,8 @@ It includes the following device emulations:
 
 Each device supports optional oversampling up to 8x.
 
+Sound demo: [Studio EQs](https://www.youtube.com/watch?v=CGIqLPSuWRE).
+
 The build script has been tested on MacOS. Windows cross-compilation is
 supported via mingw-w64.
 
