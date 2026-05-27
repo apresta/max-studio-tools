@@ -5,6 +5,7 @@
 
 #include "biquad_coeffs.h"
 #include "denormal_guard.h"
+#include "dsp_math.h"
 
 FocusEqDsp::FocusEqDsp() {
   // Initialize both Butterworth filters at defaults.
@@ -210,12 +211,7 @@ void FocusEqDsp::ProcessBlock(double* out_l, double* out_r,
   assert(out_l && out_r);
   assert(num_frames >= 0);
 
-  if (params_.phase_inv) {
-    for (int i = 0; i < num_frames; ++i) {
-      out_l[i] = -out_l[i];
-      out_r[i] = -out_r[i];
-    }
-  }
+  if (params_.phase_inv) dsp::InvertPhase(out_l, out_r, num_frames);
 
   // HPF and LPF.
   if (params_.hpf_enabled || params_.lpf_enabled) {

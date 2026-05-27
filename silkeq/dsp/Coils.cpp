@@ -64,14 +64,13 @@ void Coils::ProcessBlock(double* outL, double* outR, int num_samples) noexcept {
   const double offset = core_dc_ * 2.0 - 1.0;
   const double sin_offset = std::sin(offset);
 
-  // Hoist biquad coefficients into Vec2 once per block.
+  // Store biquad coefficients into Vec2.
   const Vec2 v_b0(b0_);
   const Vec2 v_a1(a1_);
   const Vec2 v_a2(a2_);
   const Vec2 v_offset(offset);
 
   for (int i = 0; i < num_samples; ++i) {
-
     const double sL = inL[i];
     const double sR = inR[i];
 

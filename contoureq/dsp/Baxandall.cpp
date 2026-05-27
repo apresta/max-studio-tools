@@ -140,7 +140,6 @@ void Baxandall::ProcessBlock(double* left, double* right,
 
   if (coeffs_dirty_) UpdateCoefficients();
 
-  // Hoist invariant coefficient setup out of the sample loop.
   // treble_g and bass_g are the independent dB-linear band gains.
   const CoeffVec2 cv{
       Vec2(h_coeffs_.a0),

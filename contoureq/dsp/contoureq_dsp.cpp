@@ -1,6 +1,7 @@
 #include "contoureq_dsp.h"
 
 #include "denormal_guard.h"
+#include "dsp_math.h"
 
 namespace contoureq_dsp {
 
@@ -39,12 +40,7 @@ void Processor::ProcessBlock(double* out_l, double* out_r, int frames) {
   ScopedDenormalGuard denormal_guard;
   if (frames == 0) return;
 
-  if (params_.phase_inv) {
-    for (int i = 0; i < frames; ++i) {
-      out_l[i] = -out_l[i];
-      out_r[i] = -out_r[i];
-    }
-  }
+  if (params_.phase_inv) dsp::InvertPhase(out_l, out_r, frames);
 
   if (params_.model == 0)
     eq_v1_.ProcessBlock(out_l, out_r, frames);

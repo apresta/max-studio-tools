@@ -67,7 +67,7 @@ class Baxandall {
     dsp::Vec2 ha0, ha1, ha2, hb1, hb2;
     dsp::Vec2 la0, la1, la2, lb1, lb2;
 
-    // Per-block gain scalings (hoisted out of ProcessSample).
+    // Per-block gain scalings.
     dsp::Vec2 output_g;  // pre-encode output trim
     dsp::Vec2 treble_g;  // band gain applied after filter
     dsp::Vec2 bass_g;    // band gain applied after filter

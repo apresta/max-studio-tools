@@ -6,6 +6,7 @@
 #include <cassert>
 
 #include "denormal_guard.h"
+#include "dsp_math.h"
 
 namespace bloomeq_dsp {
 
@@ -54,12 +55,7 @@ void Processor::ProcessBlock(double* out_l, double* out_r,
   const bool phase = current_params_.phase_inv;
   const bool eq_on = current_params_.eq_enable;
 
-  if (phase) {
-    for (int i = 0; i < num_frames; ++i) {
-      out_l[i] = -out_l[i];
-      out_r[i] = -out_r[i];
-    }
-  }
+  if (phase) dsp::InvertPhase(out_l, out_r, num_frames);
 
   // EQ (optional): independent WDF circuits per channel.
   if (eq_on) {

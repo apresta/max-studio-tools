@@ -7,6 +7,7 @@
 #include <cmath>
 
 #include "denormal_guard.h"
+#include "dsp_math.h"
 
 namespace {
 
@@ -88,18 +89,10 @@ void AirEqDsp::ProcessBlock(double* out_l, double* out_r, int num_frames) {
       params_.keep_gain ? kGainNormKept / dc_gain : kGainNorm;
   const double shelf_weight = (params_.high_shelf != kHighOff) ? 1.0 : 0.0;
 
+  if (params_.phase_inv) dsp::InvertPhase(out_l, out_r, num_frames);
+
   for (int i = 0; i < num_frames; ++i) {
-    double l = out_l[i];
-    double r = out_r[i];
-
-    if (params_.phase_inv) {
-      l = -l;
-      r = -r;
-    }
-
-    const dsp::Vec2 dry(l, r);
-
-    // Run each band's biquad on this one sample, then accumulate the mix.
+    const dsp::Vec2 dry(out_l[i], out_r[i]);
     dsp::Vec2 mix(0.0, 0.0);
 
     // High shelf band (conditionally weighted).

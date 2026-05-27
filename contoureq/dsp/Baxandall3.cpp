@@ -143,7 +143,7 @@ void Baxandall3::ProcessBlock(double* left, double* right,
 
   if (coeffs_dirty_) UpdateCoefficients();
 
-  // Hoist invariant coefficient setup out of the sample loop.
+  // Store coefficients in Vec2.
   const CoeffVec2 cv{
       Vec2(h_coeffs_.a0),
       Vec2(h_coeffs_.a1),

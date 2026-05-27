@@ -29,4 +29,11 @@ inline constexpr double DbLinearGain(double param) noexcept {
 
 inline double sign(double x) noexcept { return x < 0.0 ? -1.0 : 1.0; }
 
+inline void InvertPhase(double* l, double* r, int n) noexcept {
+  for (int i = 0; i < n; ++i) {
+    l[i] = -l[i];
+    r[i] = -r[i];
+  }
+}
+
 }  // namespace dsp
