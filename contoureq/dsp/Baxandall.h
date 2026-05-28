@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "biquad_coeffs.h"
+#include "biquad_state.h"
 #include "vec.h"
 
 class Baxandall {
@@ -37,26 +39,17 @@ class Baxandall {
   // Coefficients are recalculated only when parameters or sample rate change.
   bool coeffs_dirty_{true};
 
-  struct BiquadCoeffs {
-    double a0{}, a1{}, a2{};  // feed-forward; a1 = 2*a0, a2 = a0 (LP form)
-    double b1{}, b2{};        // feedback (Direct Form II Transposed)
-  };
-
-  // v1 uses distinct fixed Q values for treble and bass shelves:
-  //   treble Q = 0.4   (mildly underdamped, gentle peak at crossover)
-  //   bass   Q = 0.2   (heavily overdamped, very smooth shelf transition)
+  // Fixed Q values for treble and bass shelves.
   static constexpr double kTrebleQ = 0.4;
   static constexpr double kBassQ = 0.2;
 
-  BiquadCoeffs h_coeffs_;  // high-shelf (treble) LP prototype
-  BiquadCoeffs l_coeffs_;  // low-shelf  (bass) LP prototype
+  dsp::BiquadCoeffs h_coeffs_;  // high-shelf (treble) LP prototype
+  dsp::BiquadCoeffs l_coeffs_;  // low-shelf  (bass) LP prototype
 
   // Biquad state. Lane 0 = L, lane 1 = R; lanes are independent.
   // Two banks (A/B) alternate each sample for a subtly decorrelated character.
-  dsp::Vec2 h_state_a1_, h_state_a2_;  // high-shelf bank A
-  dsp::Vec2 h_state_b1_, h_state_b2_;  // high-shelf bank B
-  dsp::Vec2 l_state_a1_, l_state_a2_;  // low-shelf  bank A
-  dsp::Vec2 l_state_b1_, l_state_b2_;  // low-shelf  bank B
+  dsp::BiquadState h_state_a_, h_state_b_;  // high-shelf banks
+  dsp::BiquadState l_state_a_, l_state_b_;  // low-shelf  banks
 
   bool flip_{false};  // selects bank A (true) or bank B (false) each sample
 
@@ -64,8 +57,8 @@ class Baxandall {
 
   // Per-block cache: coefficients and pre-computed gains broadcast to Vec2.
   struct CoeffVec2 {
-    dsp::Vec2 ha0, ha1, ha2, hb1, hb2;
-    dsp::Vec2 la0, la1, la2, lb1, lb2;
+    dsp::BiquadCoeffs h;  // high-shelf LP prototype
+    dsp::BiquadCoeffs l;  // low-shelf  LP prototype
 
     // Per-block gain scalings.
     dsp::Vec2 output_g;  // pre-encode output trim

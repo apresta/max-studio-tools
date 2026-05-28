@@ -7,6 +7,8 @@
 #include <cassert>
 #include <cmath>
 
+#include "biquad_coeffs.h"
+#include "biquad_state.h"
 #include "dsp_math.h"
 #include "vec.h"
 
@@ -22,10 +24,10 @@ void Baxandall3::Prepare(double sample_rate) noexcept {
 
 void Baxandall3::Reset() noexcept {
   h_coeffs_ = l_coeffs_ = {};
-  h_state_a1_ = h_state_a2_ = Vec2(0.0);
-  h_state_b1_ = h_state_b2_ = Vec2(0.0);
-  l_state_a1_ = l_state_a2_ = Vec2(0.0);
-  l_state_b1_ = l_state_b2_ = Vec2(0.0);
+  h_state_a_.Clear();
+  h_state_b_.Clear();
+  l_state_a_.Clear();
+  l_state_b_.Clear();
   flip_ = false;
 }
 
@@ -46,81 +48,41 @@ void Baxandall3::SetBassLevel(double value) noexcept {
 
 void Baxandall3::UpdateCoefficients() noexcept {
   // Treble (high-shelf implemented as input minus LP output).
-  // BipolarSquaredGain maps [0,1] to [0,4] with unity at 0.5.
   const double treble_gain = dsp::BipolarSquaredGain(treble_level_);
 
   // Crossover sweeps 200 Hz - 2200 Hz as treble_gain goes 0 -> 4.
   const double treble_freq =
       std::min(((2000.0 * treble_gain) + 200.0) / sample_rate_, 0.45);
-
-  {
-    // Direct Form II Transposed low-pass biquad (Bessel Q = 1/sqrt(3)).
-    // kBesselQ gives maximally-flat group delay, preserving transients.
-    const double k = std::tan(dsp::kPi * treble_freq);
-    const double norm = 1.0 / (1.0 + k / kBesselQ + k * k);
-    h_coeffs_.a0 = k * k * norm;
-    h_coeffs_.a1 = 2.0 * h_coeffs_.a0;  // a1 = 2*a0 for LP form
-    h_coeffs_.a2 = h_coeffs_.a0;        // a2 = a0  for LP form
-    h_coeffs_.b1 = 2.0 * (k * k - 1.0) * norm;
-    h_coeffs_.b2 = (1.0 - k / kBesselQ + k * k) * norm;
-  }
+  h_coeffs_ = dsp::ComputeLPCoeffs(treble_freq, kBesselQ, sample_rate_);
 
   // Bass (low-shelf: LP output passed through directly).
   // Mirror of treble: (1-C) factor so bass cuts as treble boosts.
   const double bass_freq_factor = dsp::BipolarSquaredGain(1.0 - bass_level_);
   const double bass_freq =
       std::min(((2000.0 * bass_freq_factor) + 200.0) / sample_rate_, 0.45);
-
-  {
-    const double k = std::tan(dsp::kPi * bass_freq);
-    const double norm = 1.0 / (1.0 + k / kBesselQ + k * k);
-    l_coeffs_.a0 = k * k * norm;
-    l_coeffs_.a1 = 2.0 * l_coeffs_.a0;
-    l_coeffs_.a2 = l_coeffs_.a0;
-    l_coeffs_.b1 = 2.0 * (k * k - 1.0) * norm;
-    l_coeffs_.b2 = (1.0 - k / kBesselQ + k * k) * norm;
-  }
+  l_coeffs_ = dsp::ComputeLPCoeffs(bass_freq, kBesselQ, sample_rate_);
 
   coeffs_dirty_ = false;
 }
 
 void Baxandall3::ProcessSample(double& left, double& right,
                                const CoeffVec2& cv) noexcept {
-  // Console5 encode: soft-clip input via sin(), decode via asin().
-  const Vec2 in = [&]() noexcept {
-    const double half_pi = dsp::kPi * 0.5;
-    const Vec2 raw(left, right);
-    const Vec2 clamped =
-        dsp::max(dsp::min(raw * cv.input_g, half_pi), -half_pi);
-    return Vec2{std::sin(clamped.l()), std::sin(clamped.r())};
-  }();
+  // Console5 encode: clamp to [-pi/2, pi/2] then sin() soft-clips; asin()
+  // decodes. The clamp before sin() prevents wrap-around on hot signals.
+  const double half_pi = dsp::kPi * 0.5;
+  const Vec2 raw(left, right);
+  const Vec2 clamped = dsp::max(dsp::min(raw * cv.input_g, half_pi), -half_pi);
+  const Vec2 in{std::sin(clamped.l()), std::sin(clamped.r())};
 
-  // Interleaved biquad (L and R processed in parallel via Vec2).
-  // Alternating banks (flip_) gives a subtly decorrelated character.
-  Vec2 treble;
-  Vec2 bass;
+  // Interleaved biquad.
+  dsp::BiquadState& hs = flip_ ? h_state_a_ : h_state_b_;
+  dsp::BiquadState& ls = flip_ ? l_state_a_ : l_state_b_;
 
-  if (flip_) {
-    // High-shelf = input minus LP output.
-    treble = in * cv.ha0 + h_state_a1_;
-    h_state_a1_ = in * cv.ha1 - treble * cv.hb1 + h_state_a2_;
-    h_state_a2_ = in * cv.ha2 - treble * cv.hb2;
-    treble = in - treble;
-
-    // Bass = LP output (passed through as-is).
-    bass = in * cv.la0 + l_state_a1_;
-    l_state_a1_ = in * cv.la1 - bass * cv.lb1 + l_state_a2_;
-    l_state_a2_ = in * cv.la2 - bass * cv.lb2;
-  } else {
-    treble = in * cv.ha0 + h_state_b1_;
-    h_state_b1_ = in * cv.ha1 - treble * cv.hb1 + h_state_b2_;
-    h_state_b2_ = in * cv.ha2 - treble * cv.hb2;
-    treble = in - treble;
-
-    bass = in * cv.la0 + l_state_b1_;
-    l_state_b1_ = in * cv.la1 - bass * cv.lb1 + l_state_b2_;
-    l_state_b2_ = in * cv.la2 - bass * cv.lb2;
-  }
+  // High-shelf = input minus LP output.
+  const Vec2 treble =
+      in - hs.Tick(in, cv.h.b0, cv.h.b1, cv.h.b2, cv.h.a1, cv.h.a2);
+  // Bass = LP output (passed through as-is for low-shelf).
+  const Vec2 bass = ls.Tick(in, cv.l.b0, cv.l.b1, cv.l.b2, cv.l.a1, cv.l.a2);
 
   flip_ = !flip_;
 
@@ -128,14 +90,12 @@ void Baxandall3::ProcessSample(double& left, double& right,
   const Vec2 out = treble * cv.treble_g + bass * cv.bass_g;
 
   // Console5 decode: asin() inverts the encode sin(), restoring headroom.
-  {
-    const double cl = std::max(std::min(out.l(), dsp::kSoftClipCeiling),
-                               -dsp::kSoftClipCeiling);
-    const double cr = std::max(std::min(out.r(), dsp::kSoftClipCeiling),
-                               -dsp::kSoftClipCeiling);
-    left = std::asin(cl);
-    right = std::asin(cr);
-  }
+  const double cl = std::max(std::min(out.l(), dsp::kSoftClipCeiling),
+                             -dsp::kSoftClipCeiling);
+  const double cr = std::max(std::min(out.r(), dsp::kSoftClipCeiling),
+                             -dsp::kSoftClipCeiling);
+  left = std::asin(cl);
+  right = std::asin(cr);
 }
 
 void Baxandall3::ProcessBlock(double* left, double* right,
@@ -144,21 +104,12 @@ void Baxandall3::ProcessBlock(double* left, double* right,
 
   if (coeffs_dirty_) UpdateCoefficients();
 
-  // Store coefficients in Vec2.
   const CoeffVec2 cv{
-      Vec2(h_coeffs_.a0),
-      Vec2(h_coeffs_.a1),
-      Vec2(h_coeffs_.a2),
-      Vec2(h_coeffs_.b1),
-      Vec2(h_coeffs_.b2),
-      Vec2(l_coeffs_.a0),
-      Vec2(l_coeffs_.a1),
-      Vec2(l_coeffs_.a2),
-      Vec2(l_coeffs_.b1),
-      Vec2(l_coeffs_.b2),
-      Vec2(dsp::BipolarSquaredGain(input_gain_)),
-      Vec2(dsp::BipolarSquaredGain(treble_level_)),
-      Vec2(dsp::BipolarSquaredGain(bass_level_)),
+      .h = h_coeffs_,
+      .l = l_coeffs_,
+      .input_g = Vec2(dsp::BipolarSquaredGain(input_gain_)),
+      .treble_g = Vec2(dsp::BipolarSquaredGain(treble_level_)),
+      .bass_g = Vec2(dsp::BipolarSquaredGain(bass_level_)),
   };
 
   for (int i = 0; i < num_frames; ++i) ProcessSample(left[i], right[i], cv);

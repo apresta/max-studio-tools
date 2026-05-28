@@ -59,7 +59,7 @@ void Coils::ProcessBlock(double* out_l, double* out_r,
   output_compensation = std::max(output_compensation, kCoilsMinBoost);
 
   // drive_scale = 1 / output_compensation: feeds more signal into sin() as
-  // saturation increases, making the distortion progressively harder.
+  // saturation increases.
   const double drive_scale = 1.0 / output_compensation;
 
   const double offset = core_dc_ * 2.0 - 1.0;
@@ -85,7 +85,6 @@ void Coils::ProcessBlock(double* out_l, double* out_r,
     const Vec2 band = temp;             // band = bandlimited signal
 
     // sin() distortion applied to the out-of-band (high-energy) content.
-    // The band content bypasses distortion to preserve low-frequency detail.
     const Vec2 arg = (dry - band) * drive_scale + v_offset;
     const Vec2 sat{std::sin(arg.l()), std::sin(arg.r())};
     out_l[i] = band.l() + (sat.l() - sin_offset) * output_compensation;

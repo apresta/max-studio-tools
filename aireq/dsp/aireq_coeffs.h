@@ -190,7 +190,7 @@ inline void SetCoeffs(Type type, SampleRates sr, double* b,
   a[2] = c.a2;
 }
 
-// Map a continuous sample rate (Hz) to the nearest supported enum value.
+// Map a continuous sample rate to the nearest supported enum value.
 inline SampleRates SampleRateToEnum(double sr) noexcept {
   if (sr <= 44100.0) return k44100;
   if (sr <= 48000.0) return k48000;

@@ -5,21 +5,19 @@
 
 #include "vec.h"
 
-// Coils transformer resonance frequency (Hz) and its very low Q.
-// Q = 0.023 creates a broad, gentle midrange bump characteristic of
-// transformers.
+// Coils transformer resonance frequency and Q.
 static constexpr double kCoilsBandHz = 600.0;
 static constexpr double kCoilsBandQ = 0.023;
 
-// Minimum boost floor (prevents divide-by-zero in driveScale).
+// Minimum boost floor (prevents divide-by-zero in drive_scale).
 static constexpr double kCoilsMinBoost = 0.001;
 
 class Coils {
  public:
-  Coils(double saturation = 0.0, double coreDC = 0.5);
+  explicit Coils(double saturation = 0.0, double coreDC = 0.5);
 
   // Prepare must be called (or the sample_rate constructor argument used)
-  // before processing. This is where the 600 Hz biquad is computed.
+  // before processing.
   void Prepare(double sample_rate) noexcept;
 
   void SetSaturation(double value) noexcept;  // 0.0 - 1.0
