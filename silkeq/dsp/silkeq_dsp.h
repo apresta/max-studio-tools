@@ -29,7 +29,7 @@ struct Parameters {
   double saturation = 0.0;
 };
 
-/// One-pole low-pass smoother.
+// One-pole low-pass smoother.
 struct LopFilter {
   double y0_ = 0.0;
   double coef_ = 0.0;
@@ -53,7 +53,7 @@ struct LopFilter {
   }
 };
 
-/// One-pole high-pass filter.
+// One-pole high-pass filter.
 struct HipFilter {
   Vec2 x0_{}, y0_{};
   double a0_ = 0.0, a1_ = 0.0, b1_ = 0.0;
@@ -79,8 +79,8 @@ struct HipFilter {
   }
 };
 
-/// 2nd-order biquad EQ.
-/// Supports peaking (0), low-shelf (1), high-shelf (2).
+// 2nd-order biquad EQ.
+// Supports peaking (0), low-shelf (1), high-shelf (2).
 struct EqFilter {
   double sr_ = 44100.0;
   double freq_ = 1000.0;
@@ -148,7 +148,7 @@ struct EqFilter {
   }
 };
 
-/// Per-channel filter bank.
+// Per-channel filter bank.
 struct ChannelState {
   HipFilter f_in_a_;  // Stage 1: 11 Hz (before EQ)
   HipFilter f_in_b_;  // Stage 2: 5 Hz (before EQ, after stage 1)
