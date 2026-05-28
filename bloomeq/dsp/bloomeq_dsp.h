@@ -259,8 +259,6 @@ struct Parameters {
   double hi_boost = kMinKnob;
   int hi_boost_freq = 3;
   // hi_bandwidth: 0 = narrowest shelf transition, 1 = widest.
-  // The tilde layer converts the user-facing "narrowness" knob to this value
-  // via (1 - knob), so hi_bandwidth = 1.0 at the default center position.
   double hi_bandwidth = 0.5;
 
   double hi_cut = kMinKnob;

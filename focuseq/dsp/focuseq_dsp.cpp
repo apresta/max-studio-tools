@@ -93,7 +93,9 @@ void FocusEqDsp::UpdateLowCoeffs() noexcept {
       params_.low_q == lc.low_q && params_.low_shape == lc.low_shape)
     return;
 
-  double b[3], a[3];
+  double b[3];
+  double a[3];
+
   if (params_.low_gain == 0.0) {
     dsp::BiquadPassthrough(b, a);
   } else if (params_.low_shape == BandShape::Shelf) {
@@ -119,7 +121,9 @@ void FocusEqDsp::UpdateLowMidCoeffs() noexcept {
       params_.lomid_gain == lc.lomid_gain && params_.lomid_q == lc.lomid_q)
     return;
 
-  double b[3], a[3];
+  double b[3];
+  double a[3];
+
   if (params_.lomid_gain == 0.0) {
     dsp::BiquadPassthrough(b, a);
   } else {
@@ -141,7 +145,9 @@ void FocusEqDsp::UpdateHighMidCoeffs() noexcept {
       params_.himid_gain == lc.himid_gain && params_.himid_q == lc.himid_q)
     return;
 
-  double b[3], a[3];
+  double b[3];
+  double a[3];
+
   if (params_.himid_gain == 0.0) {
     dsp::BiquadPassthrough(b, a);
   } else {
@@ -163,7 +169,9 @@ void FocusEqDsp::UpdateHighCoeffs() noexcept {
       params_.high_q == lc.high_q && params_.high_shape == lc.high_shape)
     return;
 
-  double b[3], a[3];
+  double b[3];
+  double a[3];
+
   if (params_.high_gain == 0.0) {
     dsp::BiquadPassthrough(b, a);
   } else if (params_.high_shape == BandShape::Shelf) {
@@ -208,7 +216,7 @@ void FocusEqDsp::Prepare(double sample_rate) noexcept {
 void FocusEqDsp::ProcessBlock(double* out_l, double* out_r,
                               int num_frames) noexcept {
   ScopedDenormalGuard denormal_guard;
-  assert(out_l && out_r);
+  assert(out_l != nullptr && out_r != nullptr);
   assert(num_frames >= 0);
 
   if (params_.phase_inv) dsp::InvertPhase(out_l, out_r, num_frames);

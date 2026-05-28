@@ -29,7 +29,7 @@ class Coils {
   double GetCoreDC() const noexcept;
 
   // Process one stereo block in-place.
-  void ProcessBlock(double* outL, double* outR, int num_samples) noexcept;
+  void ProcessBlock(double* out_l, double* out_r, int num_samples) noexcept;
 
   // Reset biquad state (call between unrelated streams).
   void Reset() noexcept;

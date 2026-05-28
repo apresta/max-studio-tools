@@ -78,6 +78,6 @@ class AirEqDsp {
   void SetupFilter(Type type) noexcept;
 
   Params params_;
-  CoeffCreator::SampleRates sample_rate_;
+  coeffs::SampleRates sample_rate_;
   std::array<SimpleBiquad, kNumTypes> biquads_;
 };

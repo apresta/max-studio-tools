@@ -56,13 +56,13 @@ void Baxandall3::UpdateCoefficients() noexcept {
   {
     // Direct Form II Transposed low-pass biquad (Bessel Q = 1/sqrt(3)).
     // kBesselQ gives maximally-flat group delay, preserving transients.
-    const double K = std::tan(dsp::kPi * treble_freq);
-    const double norm = 1.0 / (1.0 + K / kBesselQ + K * K);
-    h_coeffs_.a0 = K * K * norm;
+    const double k = std::tan(dsp::kPi * treble_freq);
+    const double norm = 1.0 / (1.0 + k / kBesselQ + k * k);
+    h_coeffs_.a0 = k * k * norm;
     h_coeffs_.a1 = 2.0 * h_coeffs_.a0;  // a1 = 2*a0 for LP form
     h_coeffs_.a2 = h_coeffs_.a0;        // a2 = a0  for LP form
-    h_coeffs_.b1 = 2.0 * (K * K - 1.0) * norm;
-    h_coeffs_.b2 = (1.0 - K / kBesselQ + K * K) * norm;
+    h_coeffs_.b1 = 2.0 * (k * k - 1.0) * norm;
+    h_coeffs_.b2 = (1.0 - k / kBesselQ + k * k) * norm;
   }
 
   // Bass (low-shelf: LP output passed through directly).
@@ -72,13 +72,13 @@ void Baxandall3::UpdateCoefficients() noexcept {
       std::min(((2000.0 * bass_freq_factor) + 200.0) / sample_rate_, 0.45);
 
   {
-    const double K = std::tan(dsp::kPi * bass_freq);
-    const double norm = 1.0 / (1.0 + K / kBesselQ + K * K);
-    l_coeffs_.a0 = K * K * norm;
+    const double k = std::tan(dsp::kPi * bass_freq);
+    const double norm = 1.0 / (1.0 + k / kBesselQ + k * k);
+    l_coeffs_.a0 = k * k * norm;
     l_coeffs_.a1 = 2.0 * l_coeffs_.a0;
     l_coeffs_.a2 = l_coeffs_.a0;
-    l_coeffs_.b1 = 2.0 * (K * K - 1.0) * norm;
-    l_coeffs_.b2 = (1.0 - K / kBesselQ + K * K) * norm;
+    l_coeffs_.b1 = 2.0 * (k * k - 1.0) * norm;
+    l_coeffs_.b2 = (1.0 - k / kBesselQ + k * k) * norm;
   }
 
   coeffs_dirty_ = false;
@@ -97,7 +97,8 @@ void Baxandall3::ProcessSample(double& left, double& right,
 
   // Interleaved biquad (L and R processed in parallel via Vec2).
   // Alternating banks (flip_) gives a subtly decorrelated character.
-  Vec2 treble, bass;
+  Vec2 treble;
+  Vec2 bass;
 
   if (flip_) {
     // High-shelf = input minus LP output.

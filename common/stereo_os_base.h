@@ -4,7 +4,6 @@
 #include <mutex>
 
 #include "c74_min.h"
-#include "dsp_math.h"
 #include "oversample.h"
 
 // Base class for Max externals.

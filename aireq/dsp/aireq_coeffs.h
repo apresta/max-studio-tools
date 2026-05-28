@@ -5,7 +5,7 @@
 
 #include <cstddef>
 
-namespace CoeffCreator {
+namespace coeffs {
 
 // Filter type index (column in the coefficient table).
 enum Type {
@@ -200,4 +200,4 @@ inline SampleRates SampleRateToEnum(double sr) noexcept {
   return k192000;
 }
 
-}  // namespace CoeffCreator
+}  // namespace coeffs

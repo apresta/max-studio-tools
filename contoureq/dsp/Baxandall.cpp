@@ -55,13 +55,13 @@ void Baxandall::UpdateCoefficients() noexcept {
   {
     // Direct Form II Transposed low-pass biquad.
     // Q = kTrebleQ = 0.4: gently underdamped, mild peak at the shelf knee.
-    const double K = std::tan(dsp::kPi * treble_freq);
-    const double norm = 1.0 / (1.0 + K / kTrebleQ + K * K);
-    h_coeffs_.a0 = K * K * norm;
+    const double k = std::tan(dsp::kPi * treble_freq);
+    const double norm = 1.0 / (1.0 + k / kTrebleQ + k * k);
+    h_coeffs_.a0 = k * k * norm;
     h_coeffs_.a1 = 2.0 * h_coeffs_.a0;
     h_coeffs_.a2 = h_coeffs_.a0;
-    h_coeffs_.b1 = 2.0 * (K * K - 1.0) * norm;
-    h_coeffs_.b2 = (1.0 - K / kTrebleQ + K * K) * norm;
+    h_coeffs_.b1 = 2.0 * (k * k - 1.0) * norm;
+    h_coeffs_.b2 = (1.0 - k / kTrebleQ + k * k) * norm;
   }
 
   // Bass crossover scales inversely with bass gain: more boost lowers the
@@ -72,13 +72,13 @@ void Baxandall::UpdateCoefficients() noexcept {
 
   {
     // Q = kBassQ = 0.2: heavily overdamped for an ultra-smooth shelf rolloff.
-    const double K = std::tan(dsp::kPi * bass_freq);
-    const double norm = 1.0 / (1.0 + K / kBassQ + K * K);
-    l_coeffs_.a0 = K * K * norm;
+    const double k = std::tan(dsp::kPi * bass_freq);
+    const double norm = 1.0 / (1.0 + k / kBassQ + k * k);
+    l_coeffs_.a0 = k * k * norm;
     l_coeffs_.a1 = 2.0 * l_coeffs_.a0;
     l_coeffs_.a2 = l_coeffs_.a0;
-    l_coeffs_.b1 = 2.0 * (K * K - 1.0) * norm;
-    l_coeffs_.b2 = (1.0 - K / kBassQ + K * K) * norm;
+    l_coeffs_.b1 = 2.0 * (k * k - 1.0) * norm;
+    l_coeffs_.b2 = (1.0 - k / kBassQ + k * k) * norm;
   }
 
   coeffs_dirty_ = false;
@@ -94,7 +94,8 @@ void Baxandall::ProcessSample(double& left, double& right,
 
   // Interleaved biquad. Alternating banks (flip_) decorrelates the filter
   // paths slightly for a more organic, less clinical character.
-  Vec2 treble, bass;
+  Vec2 treble;
+  Vec2 bass;
 
   if (flip_) {
     // High-shelf = input minus LP output.

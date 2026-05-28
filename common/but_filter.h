@@ -12,8 +12,10 @@ enum class ButType { LowPass, HighPass };
 struct ButFilter {
   double sr_ = 44100.0;
   BiquadState st_;
+
   // Feedforward coefficients (b0/b1/b2 in DF-I notation).
   double b0_ = 0.0, b1_ = 0.0, b2_ = 0.0;
+
   // Feedback coefficients (a1/a2 in DF-I notation).
   double a1_ = 0.0, a2_ = 0.0;
   ButType type_;

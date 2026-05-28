@@ -13,7 +13,7 @@ class Spiral2 {
 
   double GetGain() const noexcept { return gain_; }
 
-  void ProcessBlock(double* left, double* right, int num_frames) noexcept;
+  void ProcessBlock(double* left, double* right, int num_frames) const noexcept;
 
  private:
   double gain_ = 0.5;

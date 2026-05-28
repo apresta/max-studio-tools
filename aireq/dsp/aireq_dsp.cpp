@@ -28,7 +28,7 @@ constexpr double kGainFloor = 500.0;
 
 }  // namespace
 
-AirEqDsp::AirEqDsp() : sample_rate_(CoeffCreator::k44100) {
+AirEqDsp::AirEqDsp() : sample_rate_(coeffs::k44100) {
   params_.gains.fill(0.0);
   Prepare(44100.0);
 }
@@ -42,7 +42,7 @@ void AirEqDsp::SetParameters(const Params& p) noexcept {
 }
 
 void AirEqDsp::Prepare(double sample_rate) noexcept {
-  sample_rate_ = CoeffCreator::SampleRateToEnum(sample_rate);
+  sample_rate_ = coeffs::SampleRateToEnum(sample_rate);
   for (auto& bq : biquads_) bq.Clear();
   for (int i = 0; i < kNumTypes; ++i) SetupFilter(static_cast<Type>(i));
 }
@@ -116,18 +116,18 @@ void AirEqDsp::SetupFilter(Type type) noexcept {
   double b[3] = {0, 0, 0};
   double a[3] = {1, 0, 0};
 
-  static constexpr CoeffCreator::Type kFixedMap[kShelfHi] = {
-      CoeffCreator::kBand10,  CoeffCreator::kBand40,   CoeffCreator::kBand160,
-      CoeffCreator::kBand640, CoeffCreator::kShelf2k5,
+  static constexpr coeffs::Type kFixedMap[kShelfHi] = {
+      coeffs::kBand10,  coeffs::kBand40,   coeffs::kBand160,
+      coeffs::kBand640, coeffs::kShelf2k5,
   };
 
   if (type < kShelfHi) {
-    CoeffCreator::SetCoeffs(kFixedMap[type], sample_rate_, b, a);
+    coeffs::SetCoeffs(kFixedMap[type], sample_rate_, b, a);
   } else {
-    static constexpr CoeffCreator::Type kShelfMap[kNumHighShelves] = {
-        CoeffCreator::kBand10,  // placeholder; zero-output biquad used instead
-        CoeffCreator::kA2k5,   CoeffCreator::kA5k,  CoeffCreator::kA10k,
-        CoeffCreator::kA20k,   CoeffCreator::kA40k,
+    static constexpr coeffs::Type kShelfMap[kNumHighShelves] = {
+        coeffs::kBand10,  // placeholder; zero-output biquad used instead
+        coeffs::kA2k5,   coeffs::kA5k,  coeffs::kA10k,
+        coeffs::kA20k,   coeffs::kA40k,
     };
 
     if (params_.high_shelf == kHighOff) {
@@ -135,7 +135,7 @@ void AirEqDsp::SetupFilter(Type type) noexcept {
       a[0] = 1.0;
       a[1] = a[2] = 0.0;
     } else {
-      CoeffCreator::SetCoeffs(kShelfMap[params_.high_shelf], sample_rate_, b,
+      coeffs::SetCoeffs(kShelfMap[params_.high_shelf], sample_rate_, b,
                               a);
     }
   }

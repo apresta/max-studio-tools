@@ -3,6 +3,7 @@
 
 #include "Coils.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 
@@ -22,11 +23,11 @@ void Coils::Prepare(double sample_rate) noexcept {
 
   // 600 Hz bandpass biquad; models transformer core resonance.
   const double freq = kCoilsBandHz / sample_rate_;
-  const double K = std::tan(dsp::kPi * freq);
-  const double norm = 1.0 / (1.0 + K / kCoilsBandQ + K * K);
-  b0_ = K / kCoilsBandQ * norm;
-  a1_ = 2.0 * (K * K - 1.0) * norm;
-  a2_ = (1.0 - K / kCoilsBandQ + K * K) * norm;
+  const double k = std::tan(dsp::kPi * freq);
+  const double norm = 1.0 / (1.0 + k / kCoilsBandQ + k * k);
+  b0_ = k / kCoilsBandQ * norm;
+  a1_ = 2.0 * (k * k - 1.0) * norm;
+  a2_ = (1.0 - k / kCoilsBandQ + k * k) * norm;
   // b1 = 0, b2 = -b0  (standard bandpass Direct Form I)
 
   Reset();
@@ -44,18 +45,18 @@ double Coils::GetCoreDC() const noexcept { return core_dc_; }
 
 void Coils::Reset() noexcept { z1_ = z2_ = Vec2(0.0); }
 
-void Coils::ProcessBlock(double* outL, double* outR, int num_samples) noexcept {
+void Coils::ProcessBlock(double* out_l, double* out_r,
+                         int num_samples) noexcept {
   assert(num_samples >= 0);
 
-  const double* inL = outL;
-  const double* inR = outR;
+  const double* in_l = out_l;
+  const double* in_r = out_r;
 
   // output_compensation decreases as saturation increases (1 - A^2),
   // attenuating the output to compensate for the gain added by sin().
   // kMinBoost prevents division-by-zero at full saturation.
   double output_compensation = 1.0 - saturation_ * saturation_;
-  if (output_compensation < kCoilsMinBoost)
-    output_compensation = kCoilsMinBoost;
+  output_compensation = std::max(output_compensation, kCoilsMinBoost);
 
   // drive_scale = 1 / output_compensation: feeds more signal into sin() as
   // saturation increases, making the distortion progressively harder.
@@ -71,10 +72,10 @@ void Coils::ProcessBlock(double* outL, double* outR, int num_samples) noexcept {
   const Vec2 v_offset(offset);
 
   for (int i = 0; i < num_samples; ++i) {
-    const double sL = inL[i];
-    const double sR = inR[i];
+    const double s_l = in_l[i];
+    const double s_r = in_r[i];
 
-    const Vec2 dry(sL, sR);
+    const Vec2 dry(s_l, s_r);
 
     // Bandpass biquad (Direct Form I).
     // Isolates the transformer resonance band before distortion.
@@ -87,7 +88,7 @@ void Coils::ProcessBlock(double* outL, double* outR, int num_samples) noexcept {
     // The band content bypasses distortion to preserve low-frequency detail.
     const Vec2 arg = (dry - band) * drive_scale + v_offset;
     const Vec2 sat{std::sin(arg.l()), std::sin(arg.r())};
-    outL[i] = band.l() + (sat.l() - sin_offset) * output_compensation;
-    outR[i] = band.r() + (sat.r() - sin_offset) * output_compensation;
+    out_l[i] = band.l() + (sat.l() - sin_offset) * output_compensation;
+    out_r[i] = band.r() + (sat.r() - sin_offset) * output_compensation;
   }
 }

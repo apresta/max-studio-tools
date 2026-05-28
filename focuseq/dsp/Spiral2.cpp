@@ -23,7 +23,7 @@ inline dsp::Vec2 SaturateVec(dsp::Vec2 s, double g) noexcept {
 }  // namespace
 
 void Spiral2::ProcessBlock(double* left, double* right,
-                           int num_frames) noexcept {
+                           int num_frames) const noexcept {
   if (!left || !right || num_frames <= 0) return;
 
   // Square-law taper: g = (2*gain)^2
