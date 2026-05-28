@@ -278,8 +278,6 @@ class Processor {
  public:
   void Prepare(double sample_rate);
   void SetParameters(const Parameters& p);
-
-  // Process num_frames stereo frames in-place.
   void ProcessBlock(double* out_l, double* out_r, int num_frames) noexcept;
 
  private:

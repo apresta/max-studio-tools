@@ -5,7 +5,6 @@
 
 #include "vec.h"
 
-// Tube2 output hard-clamp is +/-0.52 with makeup gain 1/0.52 ~= 1.923...
 static constexpr double kTubeClipCeiling = 0.52;
 static constexpr double kTubeClipMakeup =
     1.0 / kTubeClipCeiling;  // ~= 1.923076923

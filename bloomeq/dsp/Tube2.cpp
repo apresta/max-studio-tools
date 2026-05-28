@@ -46,8 +46,6 @@ void Tube2::ProcessBlock(double* out_l, double* out_r, int num_samples,
   }
   was_bypassed_ = false;
 
-  // power_factor selects the polynomial exponent: exponent = power_factor + 1,
-  // ranging from 2 (most tube-like) to 10 (most heavily saturated).
   const double iterations = 1.0 - tube_character_;
   const int power_factor = static_cast<int>(9.0 * iterations) + 1;
 
@@ -55,9 +53,6 @@ void Tube2::ProcessBlock(double* out_l, double* out_r, int num_samples,
   const Vec2 gain_scaling(1.0 / static_cast<double>(power_factor + 1));
   const Vec2 output_scaling(1.0 + 1.0 / static_cast<double>(power_factor));
 
-  // The saturation polynomial raises s to (power_factor + 1). When that
-  // exponent is even the result is always positive, so we must restore
-  // the original sign explicitly.
   const bool needs_sign_restore = ((power_factor + 1) % 2 == 0);
 
   for (int i = 0; i < num_samples; ++i) {
@@ -69,8 +64,7 @@ void Tube2::ProcessBlock(double* out_l, double* out_r, int num_samples,
 
     if (input_pad_ < 1.0) s = s * input_pad_;
 
-    // Hi-rate pre-averaging: low-pass by averaging consecutive samples,
-    // reducing aliasing artifacts from the nonlinear stages.
+    // Hi-rate pre-averaging.
     if (hi_rate) {
       Vec2 stored = s;
       s = (s + pre_waveshaper_avg_) * 0.5;
@@ -80,8 +74,7 @@ void Tube2::ProcessBlock(double* out_l, double* out_r, int num_samples,
     // Hard clip to +/-1 before the waveshaper.
     s = dsp::max(dsp::min(s, 1.0), -1.0);
 
-    // Asymmetric waveshaper: adds a gentle positive-side bias that mimics
-    // the asymmetric transfer curve of a triode tube.
+    // Asymmetric waveshaper.
     {
       s = s / asym_pad;
       Vec2 sh = -s;
@@ -92,14 +85,11 @@ void Tube2::ProcessBlock(double* out_l, double* out_r, int num_samples,
       s = s * asym_pad;
     }
 
-    // Tube polynomial saturation: computes s^(power_factor+1) via
-    // exponentiation by squaring, then subtracts a fraction of it to fold
-    // the waveform.
+    // Tube polynomial saturation.
     {
       Vec2 factor = dsp::pow_int(s, power_factor + 1);
 
       if (needs_sign_restore) {
-        // Even exponent collapses all signs to positive; restore from s.
         factor = dsp::abs(factor) * Vec2(dsp::sign(s.l()), dsp::sign(s.r()));
       }
 
@@ -107,15 +97,14 @@ void Tube2::ProcessBlock(double* out_l, double* out_r, int num_samples,
       s = (s - factor) * output_scaling;
     }
 
-    // Hi-rate post-averaging: second low-pass after the nonlinearity.
+    // Hi-rate post-averaging.
     if (hi_rate) {
       Vec2 stored = s;
       s = (s + post_tube_avg_) * 0.5;
       post_tube_avg_ = stored;
     }
 
-    // Hysteresis: models magnetic core memory. Each output sample is
-    // influenced by the previous one, softening transient edges.
+    // Hysteresis.
     {
       Vec2 slew = hysteresis_prev_ - s;
       if (hi_rate) {

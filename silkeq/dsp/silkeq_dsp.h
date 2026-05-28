@@ -55,8 +55,11 @@ struct LopFilter {
 
 // One-pole high-pass filter.
 struct HipFilter {
-  Vec2 x0_{}, y0_{};
-  double a0_ = 0.0, a1_ = 0.0, b1_ = 0.0;
+  Vec2 x0_;
+  Vec2 y0_;
+  double a0_ = 0.0;
+  double a1_ = 0.0;
+  double b1_ = 0.0;
   double sr_ = 44100.0;
 
   void ComputeCoeffs(double freq_hz) noexcept {
@@ -203,15 +206,8 @@ struct ChannelState {
 
 class Processor {
  public:
-  // Reset all filter state and recompute coefficients for sample_rate.
-  // Must be called at least once before ProcessBlock().
   void Prepare(double sample_rate);
-
-  // Store new parameter values.
-  // Thread-safe only when the caller guarantees no concurrent ProcessBlock().
   void SetParameters(const Parameters& p);
-
-  // Process num_frames stereo frames in-place.
   void ProcessBlock(double* out_l, double* out_r, int num_frames) noexcept;
 
  private:

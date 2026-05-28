@@ -19,19 +19,12 @@ struct Parameters {
 
 class Processor {
  public:
-  // Reset all filter state and recompute coefficients for sample_rate.
-  // Must be called at least once before ProcessBlock().
   void Prepare(double sample_rate);
-
-  // Store new parameter values. Thread-safe only when the caller guarantees
-  // no concurrent ProcessBlock().
   void SetParameters(const Parameters& p);
-
-  // Process frames stereo frames in-place.
   void ProcessBlock(double* out_l, double* out_r, int frames);
 
  private:
-  // Both engines are held as members; only the active one processes audio.
+  // EQ model variants; only the active one processes audio.
   Baxandall eq_v1_;   // model == 0
   Baxandall3 eq_v3_;  // model == 1
 

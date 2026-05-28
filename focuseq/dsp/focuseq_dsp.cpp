@@ -22,8 +22,7 @@ FocusEqDsp::FocusEqDsp() {
 void FocusEqDsp::SetParameters(const Parameters& p) noexcept {
   const Parameters& c = params_;
 
-  // HPF / LPF: always write the new freq/enabled into params_ so that
-  // re-enabling later picks up any freq change made while disabled.
+  // HPF / LPF.
   if (p.hpf_freq != c.hpf_freq || p.hpf_enabled != c.hpf_enabled) {
     params_.hpf_freq = p.hpf_freq;
     params_.hpf_enabled = p.hpf_enabled;
@@ -203,8 +202,7 @@ void FocusEqDsp::Prepare(double sample_rate) noexcept {
   high_bq_.Clear();
 
   // Invalidate the coefficient cache so every Update* call below recomputes
-  // unconditionally. The sentinel value -1.0 can never be a valid frequency
-  // or gain, so all equality checks will fail.
+  // unconditionally.
   last_computed_ = Computed{};
 
   UpdateLowCoeffs();

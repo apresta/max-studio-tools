@@ -42,7 +42,6 @@ class StereoOsBase : public c74::min::vector_operator<> {
   }
 
  public:
-  // Locked operator() owned by the base class.
   // Calls the derived PreProcess() hook before the lock (safe for param
   // copies), then ProcessBlock() inside the lock at the oversampled rate.
   void operator()(c74::min::audio_bundle input,

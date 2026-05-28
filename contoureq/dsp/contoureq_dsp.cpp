@@ -15,10 +15,11 @@ void Processor::SetParameters(const Parameters& p) {
   // If the model changed, re-prepare the newly selected engine so stale
   // filter state from a previous run never bleeds into the new algorithm.
   if (p.model != params_.model) {
-    if (p.model == 0)
+    if (p.model == 0) {
       eq_v1_.Prepare(sample_rate_);
-    else
+    } else {
       eq_v3_.Prepare(sample_rate_);
+    }
   }
 
   if (p.model == 0) {
@@ -42,10 +43,11 @@ void Processor::ProcessBlock(double* out_l, double* out_r, int frames) {
 
   if (params_.phase_inv) dsp::InvertPhase(out_l, out_r, frames);
 
-  if (params_.model == 0)
+  if (params_.model == 0) {
     eq_v1_.ProcessBlock(out_l, out_r, frames);
-  else
+  } else {
     eq_v3_.ProcessBlock(out_l, out_r, frames);
+  }
 }
 
 }  // namespace contoureq_dsp
