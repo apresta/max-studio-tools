@@ -1,26 +1,15 @@
 #include "focuseq_dsp.h"
 
-#include <cassert>
 #include <cmath>
 
 #include "biquad_coeffs.h"
 #include "denormal_guard.h"
 #include "dsp_math.h"
 
-FocusEqDsp::FocusEqDsp() {
-  // Initialize both Butterworth filters at defaults.
-  hpf_.Init(params_.hpf_freq, sample_rate_);
-  lpf_.Init(params_.lpf_freq, sample_rate_);
+namespace focuseq_dsp {
 
-  // Set all four EQ biquads to unity gain.
-  UpdateLowCoeffs();
-  UpdateLowMidCoeffs();
-  UpdateHighMidCoeffs();
-  UpdateHighCoeffs();
-}
-
-void FocusEqDsp::SetParameters(const Parameters& p) noexcept {
-  const Parameters& c = params_;
+void Processor::SetParams(const Params& p) noexcept {
+  const Params& c = params_;
 
   // HPF / LPF.
   if (p.hpf_freq != c.hpf_freq || p.hpf_enabled != c.hpf_enabled) {
@@ -73,7 +62,7 @@ void FocusEqDsp::SetParameters(const Parameters& p) noexcept {
   // Saturation gain.
   if (p.sat_gain != c.sat_gain) {
     params_.sat_gain = p.sat_gain;
-    sat_.SetGain(static_cast<float>(p.sat_gain));
+    spiral2_.SetGain(static_cast<float>(p.sat_gain));
   }
 
   // Plain flags (no coefficients to recompute).
@@ -82,11 +71,11 @@ void FocusEqDsp::SetParameters(const Parameters& p) noexcept {
   params_.sat_enable = p.sat_enable;
 }
 
-void FocusEqDsp::UpdateHpfCoeffs() noexcept { hpf_.SetFreq(params_.hpf_freq); }
+void Processor::UpdateHpfCoeffs() noexcept { hpf_.SetFreq(params_.hpf_freq); }
 
-void FocusEqDsp::UpdateLpfCoeffs() noexcept { lpf_.SetFreq(params_.lpf_freq); }
+void Processor::UpdateLpfCoeffs() noexcept { lpf_.SetFreq(params_.lpf_freq); }
 
-void FocusEqDsp::UpdateLowCoeffs() noexcept {
+void Processor::UpdateLowCoeffs() noexcept {
   Computed& lc = last_computed_;
   if (params_.low_freq == lc.low_freq && params_.low_gain == lc.low_gain &&
       params_.low_q == lc.low_q && params_.low_shape == lc.low_shape)
@@ -97,12 +86,12 @@ void FocusEqDsp::UpdateLowCoeffs() noexcept {
 
   if (params_.low_gain == 0.0) {
     dsp::BiquadPassthrough(b, a);
-  } else if (params_.low_shape == BandShape::Shelf) {
+  } else if (params_.low_shape == BandShape::kShelf) {
     dsp::BiquadLowShelf(params_.low_freq, params_.low_gain, params_.low_q,
                         sample_rate_, b, a);
   } else {
     const double eff_q =
-        params_.low_q * std::pow(10.0, std::fabs(params_.low_gain) / 40.0);
+        params_.low_q * std::pow(10.0, std::abs(params_.low_gain) / 40.0);
     dsp::BiquadPeak(params_.low_freq, params_.low_gain, eff_q, sample_rate_, b,
                     a);
   }
@@ -114,7 +103,7 @@ void FocusEqDsp::UpdateLowCoeffs() noexcept {
   lc.low_shape = params_.low_shape;
 }
 
-void FocusEqDsp::UpdateLowMidCoeffs() noexcept {
+void Processor::UpdateLowMidCoeffs() noexcept {
   Computed& lc = last_computed_;
   if (params_.lomid_freq == lc.lomid_freq &&
       params_.lomid_gain == lc.lomid_gain && params_.lomid_q == lc.lomid_q)
@@ -127,7 +116,7 @@ void FocusEqDsp::UpdateLowMidCoeffs() noexcept {
     dsp::BiquadPassthrough(b, a);
   } else {
     const double eff_q =
-        params_.lomid_q * std::pow(10.0, std::fabs(params_.lomid_gain) / 40.0);
+        params_.lomid_q * std::pow(10.0, std::abs(params_.lomid_gain) / 40.0);
     dsp::BiquadPeak(params_.lomid_freq, params_.lomid_gain, eff_q, sample_rate_,
                     b, a);
   }
@@ -138,7 +127,7 @@ void FocusEqDsp::UpdateLowMidCoeffs() noexcept {
   lc.lomid_q = params_.lomid_q;
 }
 
-void FocusEqDsp::UpdateHighMidCoeffs() noexcept {
+void Processor::UpdateHighMidCoeffs() noexcept {
   Computed& lc = last_computed_;
   if (params_.himid_freq == lc.himid_freq &&
       params_.himid_gain == lc.himid_gain && params_.himid_q == lc.himid_q)
@@ -151,7 +140,7 @@ void FocusEqDsp::UpdateHighMidCoeffs() noexcept {
     dsp::BiquadPassthrough(b, a);
   } else {
     const double eff_q =
-        params_.himid_q * std::pow(10.0, std::fabs(params_.himid_gain) / 40.0);
+        params_.himid_q * std::pow(10.0, std::abs(params_.himid_gain) / 40.0);
     dsp::BiquadPeak(params_.himid_freq, params_.himid_gain, eff_q, sample_rate_,
                     b, a);
   }
@@ -162,7 +151,7 @@ void FocusEqDsp::UpdateHighMidCoeffs() noexcept {
   lc.himid_q = params_.himid_q;
 }
 
-void FocusEqDsp::UpdateHighCoeffs() noexcept {
+void Processor::UpdateHighCoeffs() noexcept {
   Computed& lc = last_computed_;
   if (params_.high_freq == lc.high_freq && params_.high_gain == lc.high_gain &&
       params_.high_q == lc.high_q && params_.high_shape == lc.high_shape)
@@ -173,12 +162,12 @@ void FocusEqDsp::UpdateHighCoeffs() noexcept {
 
   if (params_.high_gain == 0.0) {
     dsp::BiquadPassthrough(b, a);
-  } else if (params_.high_shape == BandShape::Shelf) {
+  } else if (params_.high_shape == BandShape::kShelf) {
     dsp::BiquadHighShelf(params_.high_freq, params_.high_gain, params_.high_q,
                          sample_rate_, b, a);
   } else {
     const double eff_q =
-        params_.high_q * std::pow(10.0, std::fabs(params_.high_gain) / 40.0);
+        params_.high_q * std::pow(10.0, std::abs(params_.high_gain) / 40.0);
     dsp::BiquadPeak(params_.high_freq, params_.high_gain, eff_q, sample_rate_,
                     b, a);
   }
@@ -190,7 +179,7 @@ void FocusEqDsp::UpdateHighCoeffs() noexcept {
   lc.high_shape = params_.high_shape;
 }
 
-void FocusEqDsp::Prepare(double sample_rate) noexcept {
+void Processor::Prepare(double sample_rate) noexcept {
   sample_rate_ = sample_rate;
 
   hpf_.Init(params_.hpf_freq, sample_rate_);
@@ -211,9 +200,9 @@ void FocusEqDsp::Prepare(double sample_rate) noexcept {
   UpdateHighCoeffs();
 }
 
-void FocusEqDsp::ProcessBlock(double* out_l, double* out_r,
-                              int num_frames) noexcept {
-  ScopedDenormalGuard denormal_guard;
+void Processor::ProcessBlock(double* out_l, double* out_r,
+                             int num_frames) noexcept {
+  dsp::ScopedDenormalGuard denormal_guard;
   assert(out_l != nullptr && out_r != nullptr);
   assert(num_frames >= 0);
 
@@ -225,8 +214,8 @@ void FocusEqDsp::ProcessBlock(double* out_l, double* out_r,
       dsp::Vec2 x{out_l[i], out_r[i]};
       if (params_.hpf_enabled) x = hpf_.Process(x);
       if (params_.lpf_enabled) x = lpf_.Process(x);
-      out_l[i] = x.l();
-      out_r[i] = x.r();
+      out_l[i] = x.L();
+      out_r[i] = x.R();
     }
   }
 
@@ -239,5 +228,7 @@ void FocusEqDsp::ProcessBlock(double* out_l, double* out_r,
   }
 
   // Saturation.
-  if (params_.sat_enable) sat_.ProcessBlock(out_l, out_r, num_frames);
+  if (params_.sat_enable) spiral2_.ProcessBlock(out_l, out_r, num_frames);
 }
+
+}  // namespace focuseq_dsp

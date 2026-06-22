@@ -1,5 +1,5 @@
 // This file is derived from the original EQP-WDF-1A by ABSounds.
-// Copyright (c) ABSounds (GPL-3.0 license)
+// Copyright (c) ABSounds (GPL-3.0 license).
 
 #pragma once
 
@@ -251,7 +251,7 @@ namespace bloomeq_dsp {
 // resistance or infinite susceptance).
 static constexpr double kMinKnob = 1e-4;
 
-struct Parameters {
+struct Params {
   double lo_boost = kMinKnob;
   double lo_cut = kMinKnob;
   int lo_freq = 2;  // freq selector
@@ -268,7 +268,7 @@ struct Parameters {
   bool phase_inv = false;
 
   double gain = 0.5;
-  double saturation = 0.5;
+  double saturation = 0.0;
 };
 
 // Stereo processor: owns independent EQP1A circuits for L and R (WDF circuit
@@ -276,18 +276,17 @@ struct Parameters {
 // Tube2 saturation stage.
 class Processor {
  public:
-  void Prepare(double sample_rate);
-  void SetParameters(const Parameters& p);
+  void Prepare(double sample_rate) noexcept;
+  void SetParams(const Params& p) noexcept;
   void ProcessBlock(double* out_l, double* out_r, int num_frames) noexcept;
 
  private:
-  void Apply(const Parameters& p);
+  void Apply(const Params& p) noexcept;
 
   EQP1A eqp1a_l_;
   EQP1A eqp1a_r_;
-  Tube2 tube2_;
-  Parameters current_params_;
-  bool prepared_ = false;
+  saturation::Tube2 tube2_;
+  Params params_;
   double sample_rate_ = 44100.0;
 };
 

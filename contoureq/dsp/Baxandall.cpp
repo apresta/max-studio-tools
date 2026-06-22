@@ -1,5 +1,5 @@
 // This file is derived from the original Baxandall by Airwindows.
-// Copyright (c) Airwindows (MIT license)
+// Copyright (c) Airwindows (MIT license).
 
 #include "Baxandall.h"
 
@@ -12,6 +12,9 @@
 #include "vec.h"
 
 using dsp::Vec2;
+
+// Hard ceiling used before asin() to stay within its [-1, 1] domain.
+static constexpr double kSoftClipCeiling = 0.99999;
 
 Baxandall::Baxandall() { Reset(); }
 
@@ -62,8 +65,8 @@ void Baxandall::UpdateCoefficients() noexcept {
 
 void Baxandall::ProcessSample(double& left, double& right,
                               const CoeffVec2& cv) noexcept {
-  const double s_l = left * cv.output_g.l();
-  const double s_r = right * cv.output_g.r();
+  const double s_l = left * cv.output_g.L();
+  const double s_r = right * cv.output_g.R();
 
   // Console5 encode: sin() soft-clips the input, decode asin() inverts it.
   const Vec2 in{std::sin(s_l), std::sin(s_r)};
@@ -85,10 +88,10 @@ void Baxandall::ProcessSample(double& left, double& right,
 
   // Console5 decode: asin() inverts the encode sin(), restoring headroom.
   {
-    const double cl = std::max(std::min(out.l(), dsp::kSoftClipCeiling),
-                               -dsp::kSoftClipCeiling);
-    const double cr = std::max(std::min(out.r(), dsp::kSoftClipCeiling),
-                               -dsp::kSoftClipCeiling);
+    const double cl =
+        std::max(std::min(out.L(), kSoftClipCeiling), -kSoftClipCeiling);
+    const double cr =
+        std::max(std::min(out.R(), kSoftClipCeiling), -kSoftClipCeiling);
     left = std::asin(cl);
     right = std::asin(cr);
   }

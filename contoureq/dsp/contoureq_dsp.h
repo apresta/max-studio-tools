@@ -5,7 +5,7 @@
 
 namespace contoureq_dsp {
 
-struct Parameters {
+struct Params {
   // 0 = Baxandall  (output trim + dB-linear taper, v1 crossover curves)
   // 1 = Baxandall3 (input drive + squared taper,   Bessel-Q shelves)
   int model = 0;  // [0, 1]
@@ -19,17 +19,17 @@ struct Parameters {
 
 class Processor {
  public:
-  void Prepare(double sample_rate);
-  void SetParameters(const Parameters& p);
-  void ProcessBlock(double* out_l, double* out_r, int frames);
+  void Prepare(double sample_rate) noexcept;
+  void SetParams(const Params& p) noexcept;
+  void ProcessBlock(double* out_l, double* out_r, int num_frames) noexcept;
 
  private:
   // EQ model variants; only the active one processes audio.
   Baxandall eq_v1_;   // model == 0
   Baxandall3 eq_v3_;  // model == 1
 
-  Parameters params_;
-  double sample_rate_{44100.0};
+  Params params_;
+  double sample_rate_ = 44100.0;
 };
 
 }  // namespace contoureq_dsp

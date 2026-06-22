@@ -5,13 +5,13 @@
 
 namespace contoureq_dsp {
 
-void Processor::Prepare(double sample_rate) {
+void Processor::Prepare(double sample_rate) noexcept {
   sample_rate_ = sample_rate;
   eq_v1_.Prepare(sample_rate);
   eq_v3_.Prepare(sample_rate);
 }
 
-void Processor::SetParameters(const Parameters& p) {
+void Processor::SetParams(const Params& p) noexcept {
   // If the model changed, re-prepare the newly selected engine so stale
   // filter state from a previous run never bleeds into the new algorithm.
   if (p.model != params_.model) {
@@ -37,16 +37,16 @@ void Processor::SetParameters(const Parameters& p) {
   params_ = p;
 }
 
-void Processor::ProcessBlock(double* out_l, double* out_r, int frames) {
-  ScopedDenormalGuard denormal_guard;
-  if (frames == 0) return;
+void Processor::ProcessBlock(double* out_l, double* out_r,
+                             int num_frames) noexcept {
+  dsp::ScopedDenormalGuard denormal_guard;
 
-  if (params_.phase_inv) dsp::InvertPhase(out_l, out_r, frames);
+  if (params_.phase_inv) dsp::InvertPhase(out_l, out_r, num_frames);
 
   if (params_.model == 0) {
-    eq_v1_.ProcessBlock(out_l, out_r, frames);
+    eq_v1_.ProcessBlock(out_l, out_r, num_frames);
   } else {
-    eq_v3_.ProcessBlock(out_l, out_r, frames);
+    eq_v3_.ProcessBlock(out_l, out_r, num_frames);
   }
 }
 

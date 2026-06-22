@@ -49,5 +49,5 @@ done
 
 echo
 echo "Done."
-echo "  macOS:   ${EXTERNALS_PATH}/aireq~.mxo  ${EXTERNALS_PATH}/silkeq~.mxo  ${EXTERNALS_PATH}/bloomeq~.mxo  ${EXTERNALS_PATH}/focuseq~.mxo  ${EXTERNALS_PATH}/contoureq~.mxo"
-echo "  Windows: ${EXTERNALS_PATH}/aireq~.mxe64 ${EXTERNALS_PATH}/silkeq~.mxe64 ${EXTERNALS_PATH}/bloomeq~.mxe64 ${EXTERNALS_PATH}/focuseq~.mxe64 ${EXTERNALS_PATH}/contoureq~.mxe64"
+echo "  macOS:   ${EXTERNALS_PATH}/aireq~.mxo  ${EXTERNALS_PATH}/silkeq~.mxo  ${EXTERNALS_PATH}/bloomeq~.mxo  ${EXTERNALS_PATH}/focuseq~.mxo  ${EXTERNALS_PATH}/contoureq~.mxo  ${EXTERNALS_PATH}/levelcomp~.mxo  ${EXTERNALS_PATH}/punchcomp~.mxo  ${EXTERNALS_PATH}/smoothcomp~.mxo  ${EXTERNALS_PATH}/glidecomp~.mxo  ${EXTERNALS_PATH}/snapcomp~.mxo"
+echo "  Windows: ${EXTERNALS_PATH}/aireq~.mxe64 ${EXTERNALS_PATH}/silkeq~.mxe64 ${EXTERNALS_PATH}/bloomeq~.mxe64 ${EXTERNALS_PATH}/focuseq~.mxe64  ${EXTERNALS_PATH}/contoureq~.mxe64 ${EXTERNALS_PATH}/levelcomp~.mxe64  ${EXTERNALS_PATH}/punchcomp~.mxe64  ${EXTERNALS_PATH}/smoothcomp~.mxe64  ${EXTERNALS_PATH}/glidecomp~.mxe64  ${EXTERNALS_PATH}/snapcomp~.mxe64"

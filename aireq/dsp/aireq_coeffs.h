@@ -1,30 +1,31 @@
 // This file is derived from the original Luftikus by lkjb.
-// Copyright (c) lkjb (MIT license)
+// Copyright (c) lkjb (MIT license).
 
 #pragma once
 
 #include <cstddef>
 
+namespace aireq_dsp {
 namespace coeffs {
 
 // Filter type index (column in the coefficient table).
-enum Type {
-  kBand10,
-  kBand40,
-  kBand160,
-  kBand640,
-  kShelf2k5,
-  kA2k5,
-  kA5k,
-  kA10k,
-  kA20k,
-  kA40k,
+enum FilterType {
+  kBand10 = 0,
+  kBand40 = 1,
+  kBand160 = 2,
+  kBand640 = 3,
+  kShelf2k5 = 4,
+  kA2k5 = 5,
+  kA5k = 6,
+  kA10k = 7,
+  kA20k = 8,
+  kA40k = 9,
 
-  kNumTypes
+  kNumTypes = 10
 };
 
 // Sample rate index (row in the coefficient table).
-enum SampleRates {
+enum class SampleRates {
   k44100,
   k48000,
   k88200,
@@ -40,7 +41,8 @@ struct Coeffs {
   double b0, b1, b2, a1, a2;
 };
 
-static constexpr Coeffs kCoeffTable[kNumSamplerates][kNumTypes] = {
+static constexpr Coeffs kCoeffTable[static_cast<int>(
+    SampleRates::kNumSamplerates)][static_cast<int>(FilterType::kNumTypes)] = {
     // k44100
     {
         {0.00687960864176262, -2.6786482747454e-5, -0.00685282215901528,
@@ -179,9 +181,9 @@ static constexpr Coeffs kCoeffTable[kNumSamplerates][kNumTypes] = {
 
 // Look up pre-computed coefficients and write them into b[3] / a[3].
 // a[0] is always written as 1. a[1] and a[2] carry the feedback terms.
-inline void SetCoeffs(Type type, SampleRates sr, double* b,
+inline void SetCoeffs(FilterType type, SampleRates sr, double* b,
                       double* a) noexcept {
-  const Coeffs& c = kCoeffTable[sr][type];
+  const Coeffs& c = kCoeffTable[static_cast<int>(sr)][static_cast<int>(type)];
   b[0] = c.b0;
   b[1] = c.b1;
   b[2] = c.b2;
@@ -192,12 +194,13 @@ inline void SetCoeffs(Type type, SampleRates sr, double* b,
 
 // Map a continuous sample rate to the nearest supported enum value.
 inline SampleRates SampleRateToEnum(double sr) noexcept {
-  if (sr <= 44100.0) return k44100;
-  if (sr <= 48000.0) return k48000;
-  if (sr <= 88200.0) return k88200;
-  if (sr <= 96000.0) return k96000;
-  if (sr <= 176400.0) return k176400;
-  return k192000;
+  if (sr <= 44100.0) return SampleRates::k44100;
+  if (sr <= 48000.0) return SampleRates::k48000;
+  if (sr <= 88200.0) return SampleRates::k88200;
+  if (sr <= 96000.0) return SampleRates::k96000;
+  if (sr <= 176400.0) return SampleRates::k176400;
+  return SampleRates::k192000;
 }
 
 }  // namespace coeffs
+}  // namespace aireq_dsp

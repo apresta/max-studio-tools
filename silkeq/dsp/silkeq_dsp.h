@@ -1,6 +1,6 @@
 // The filter structure in this device is based on the original eq1979 (JSFX)
 // code by D4p0up, with a few changes to the shelf filter computations.
-// See https://github.com/D4p0up/eq1979.
+// See https://github.com/D4p0up/eq1979 (GPL-3.0 License).
 
 #pragma once
 
@@ -13,15 +13,15 @@
 #include "dsp_math.h"
 #include "vec.h"
 
-using dsp::Vec2;
-
 namespace silkeq_dsp {
 
-struct Parameters {
-  double c_hpf_gain = 0.0;
-  double c_mpf_gain = 0.0;
+using dsp::Vec2;
+
+struct Params {
+  double hpf_gain = 0.0;
+  double mpf_gain = 0.0;
   int mpf_cut = 0;  // mid-frequency band selector
-  double c_lpf_gain = 0.0;
+  double lpf_gain = 0.0;
   int lpf_cut = 0;  // low-frequency band selector
   int hpf_cut = 0;  // input HPF selector
   bool eq_enable = true;
@@ -42,13 +42,13 @@ struct LopFilter {
   void Seed(double value) noexcept { y0_ = value; }
 
   double Process(double x) noexcept {
-    y0_ = x + (y0_ - x) * coef_;
+    y0_ = x + ((y0_ - x) * coef_);
     return y0_;
   }
 
   // Advance the smoother by n samples toward target x in one O(1) step.
   double Advance(double x, int n) noexcept {
-    y0_ = x + (y0_ - x) * std::pow(coef_, static_cast<double>(n));
+    y0_ = x + ((y0_ - x) * std::pow(coef_, static_cast<double>(n)));
     return y0_;
   }
 };
@@ -60,16 +60,16 @@ struct HipFilter {
   double a0_ = 0.0;
   double a1_ = 0.0;
   double b1_ = 0.0;
-  double sr_ = 44100.0;
+  double sample_rate_ = 44100.0;
 
   void ComputeCoeffs(double freq_hz) noexcept {
-    b1_ = std::exp(-2.0 * dsp::kPi * freq_hz / sr_);
+    b1_ = std::exp(-2.0 * dsp::kPi * freq_hz / sample_rate_);
     a0_ = (1.0 + b1_) * 0.5;
     a1_ = -a0_;
   }
 
   void Init(double freq_hz, double sr) noexcept {
-    sr_ = sr;
+    sample_rate_ = sr;
     x0_ = y0_ = Vec2{};
     ComputeCoeffs(freq_hz);
   }
@@ -85,7 +85,7 @@ struct HipFilter {
 // 2nd-order biquad EQ.
 // Supports peaking (0), low-shelf (1), high-shelf (2).
 struct EqFilter {
-  double sr_ = 44100.0;
+  double sample_rate_ = 44100.0;
   double freq_ = 1000.0;
   double q_ = 0.5;
   double boost_ = 0.0;
@@ -103,19 +103,19 @@ struct EqFilter {
     // Frequency clamping and Q floor are handled inside each dsp function.
     switch (type_) {
       case 0:
-        dsp::BiquadPeak(freq_, boost_, q_, sr_, b_, a_);
+        dsp::BiquadPeak(freq_, boost_, q_, sample_rate_, b_, a_);
         break;
       case 1:
-        dsp::BiquadLowShelf(freq_, boost_, q_, sr_, b_, a_);
+        dsp::BiquadLowShelf(freq_, boost_, q_, sample_rate_, b_, a_);
         break;
       default:
-        dsp::BiquadHighShelf(freq_, boost_, q_, sr_, b_, a_);
+        dsp::BiquadHighShelf(freq_, boost_, q_, sample_rate_, b_, a_);
         break;
     }
   }
 
   void Init(double freq, double q, double boost, int type, double sr) noexcept {
-    sr_ = sr;
+    sample_rate_ = sr;
     type_ = (type < 0) ? 0 : (type > 2 ? 2 : type);
     freq_ = freq;
     q_ = q;
@@ -156,13 +156,13 @@ struct ChannelState {
   HipFilter f_in_a_;  // Stage 1: 11 Hz (before EQ)
   HipFilter f_in_b_;  // Stage 2: 5 Hz (before EQ, after stage 1)
 
-  dsp::ButFilter f_slf_a_{dsp::ButType::HighPass};  // HPF stage 1
-  dsp::ButFilter f_slf_b_{dsp::ButType::HighPass};  // HPF stage 2
-  EqFilter f_slf_c_;                                // HPF bump correction 1
-  EqFilter f_slf_d_;                                // HPF notch correction 2
+  dsp::ButFilter f_slf_a_{dsp::ButType::kHighPass};  // HPF stage 1
+  dsp::ButFilter f_slf_b_{dsp::ButType::kHighPass};  // HPF stage 2
+  EqFilter f_slf_c_;                                 // HPF bump correction 1
+  EqFilter f_slf_d_;                                 // HPF notch correction 2
 
-  dsp::ButFilter f_hlf_a_{dsp::ButType::LowPass};  // anti-alias LPF stage 1
-  dsp::ButFilter f_hlf_b_{dsp::ButType::LowPass};  // anti-alias LPF stage 2
+  dsp::ButFilter f_hlf_a_{dsp::ButType::kLowPass};  // anti-alias LPF stage 1
+  dsp::ButFilter f_hlf_b_{dsp::ButType::kLowPass};  // anti-alias LPF stage 2
 
   EqFilter f_bump_;  // static mid bump @ 850 Hz, +0.38 dB
   EqFilter f_drop_;  // static HF drop @ 18.3 kHz, -0.8 dB
@@ -206,8 +206,8 @@ struct ChannelState {
 
 class Processor {
  public:
-  void Prepare(double sample_rate);
-  void SetParameters(const Parameters& p);
+  void Prepare(double sample_rate) noexcept;
+  void SetParams(const Params& p) noexcept;
   void ProcessBlock(double* out_l, double* out_r, int num_frames) noexcept;
 
  private:
@@ -216,18 +216,17 @@ class Processor {
   void UpdateMF() noexcept;
   void UpdateLF() noexcept;
 
-  double sr_ = 44100.0;
   ChannelState ch_;
 
   LopFilter p_hf_, p_mf_, p_lf_;
 
-  Parameters params_;
+  Params params_;
 
   double hpf_gain_ = 0.0;
   double mpf_gain_ = 0.0;
   double lpf_gain_ = 0.0;
 
-  Coils coils_;
+  saturation::Coils coils_;
 };
 
 }  // namespace silkeq_dsp

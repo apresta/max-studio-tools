@@ -15,9 +15,9 @@ struct Vec2 {
 
   explicit Vec2(double s) noexcept : v{s, s} {}
 
-  double l() const noexcept { return v[0]; }
+  double L() const noexcept { return v[0]; }
 
-  double r() const noexcept { return v[1]; }
+  double R() const noexcept { return v[1]; }
 
   Vec2 operator+(Vec2 o) const noexcept {
     return {v[0] + o.v[0], v[1] + o.v[1]};
@@ -65,6 +65,16 @@ struct Vec2 {
     return *this;
   }
 
+  Vec2& operator+=(double s) noexcept {
+    *this = *this + s;
+    return *this;
+  }
+
+  Vec2& operator-=(double s) noexcept {
+    *this = *this - s;
+    return *this;
+  }
+
   Vec2& operator*=(double s) noexcept {
     *this = *this * s;
     return *this;
@@ -84,29 +94,29 @@ inline Vec2 operator*(double s, Vec2 v) noexcept { return Vec2(s) * v; }
 
 inline Vec2 operator/(double s, Vec2 v) noexcept { return Vec2(s) / v; }
 
-inline Vec2 abs(Vec2 x) noexcept {
-  return Vec2(std::fabs(x.v[0]), std::fabs(x.v[1]));
+inline Vec2 Abs(Vec2 x) noexcept {
+  return Vec2(std::abs(x.v[0]), std::abs(x.v[1]));
 }
 
-inline Vec2 min(Vec2 a, Vec2 b) noexcept {
+inline Vec2 Min(Vec2 a, Vec2 b) noexcept {
   return Vec2(a.v[0] < b.v[0] ? a.v[0] : b.v[0],
               a.v[1] < b.v[1] ? a.v[1] : b.v[1]);
 }
 
-inline Vec2 max(Vec2 a, Vec2 b) noexcept {
+inline Vec2 Max(Vec2 a, Vec2 b) noexcept {
   return Vec2(a.v[0] > b.v[0] ? a.v[0] : b.v[0],
               a.v[1] > b.v[1] ? a.v[1] : b.v[1]);
 }
 
-inline Vec2 sqrt(Vec2 x) noexcept {
+inline Vec2 Sqrt(Vec2 x) noexcept {
   return Vec2(std::sqrt(x.v[0]), std::sqrt(x.v[1]));
 }
 
-inline Vec2 min(Vec2 a, double s) noexcept { return min(a, Vec2(s)); }
+inline Vec2 Min(Vec2 a, double s) noexcept { return Min(a, Vec2(s)); }
 
-inline Vec2 max(Vec2 a, double s) noexcept { return max(a, Vec2(s)); }
+inline Vec2 Max(Vec2 a, double s) noexcept { return Max(a, Vec2(s)); }
 
-inline Vec2 pow_int(Vec2 x, int n) noexcept {
+inline Vec2 Pow(Vec2 x, int n) noexcept {
   assert(n >= 0);
   Vec2 result(1.0);
   Vec2 base = x;

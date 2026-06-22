@@ -1,5 +1,5 @@
 // This file is derived from the original Baxandall3 by Airwindows.
-// Copyright (c) Airwindows (MIT license)
+// Copyright (c) Airwindows (MIT license).
 
 #include "Baxandall3.h"
 
@@ -12,7 +12,12 @@
 #include "dsp_math.h"
 #include "vec.h"
 
+namespace contoureq_dsp {
+
 using dsp::Vec2;
+
+// Hard ceiling used before asin() to stay within its [-1, 1] domain.
+static constexpr double kSoftClipCeiling = 0.99999;
 
 Baxandall3::Baxandall3() { Reset(); }
 
@@ -71,8 +76,8 @@ void Baxandall3::ProcessSample(double& left, double& right,
   // decodes. The clamp before sin() prevents wrap-around on hot signals.
   const double half_pi = dsp::kPi * 0.5;
   const Vec2 raw(left, right);
-  const Vec2 clamped = dsp::max(dsp::min(raw * cv.input_g, half_pi), -half_pi);
-  const Vec2 in{std::sin(clamped.l()), std::sin(clamped.r())};
+  const Vec2 clamped = dsp::Max(dsp::Min(raw * cv.input_g, half_pi), -half_pi);
+  const Vec2 in{std::sin(clamped.L()), std::sin(clamped.R())};
 
   // Interleaved biquad.
   dsp::BiquadState& hs = flip_ ? h_state_a_ : h_state_b_;
@@ -90,10 +95,10 @@ void Baxandall3::ProcessSample(double& left, double& right,
   const Vec2 out = treble * cv.treble_g + bass * cv.bass_g;
 
   // Console5 decode: asin() inverts the encode sin(), restoring headroom.
-  const double cl = std::max(std::min(out.l(), dsp::kSoftClipCeiling),
-                             -dsp::kSoftClipCeiling);
-  const double cr = std::max(std::min(out.r(), dsp::kSoftClipCeiling),
-                             -dsp::kSoftClipCeiling);
+  const double cl =
+      std::max(std::min(out.L(), kSoftClipCeiling), -kSoftClipCeiling);
+  const double cr =
+      std::max(std::min(out.R(), kSoftClipCeiling), -kSoftClipCeiling);
   left = std::asin(cl);
   right = std::asin(cr);
 }
@@ -114,3 +119,5 @@ void Baxandall3::ProcessBlock(double* left, double* right,
 
   for (int i = 0; i < num_frames; ++i) ProcessSample(left[i], right[i], cv);
 }
+
+}  // namespace contoureq_dsp

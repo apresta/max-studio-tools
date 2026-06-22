@@ -17,13 +17,17 @@ set(LLVM_MINGW_PREFIX "${CMAKE_SOURCE_DIR}/deps/llvm-mingw" CACHE PATH
 set(R8BRAIN_PATH "${CMAKE_SOURCE_DIR}/deps/r8brain-free-src" CACHE PATH
   "Path to r8brain headers")
 
-
 option(SUPERBUILD  "Build macOS + Windows in one pass" ON)
-option(BUILD_AIREQ      "Build aireq~"     ON)
-option(BUILD_SILKEQ     "Build silkeq~"    ON)
-option(BUILD_BLOOMEQ    "Build bloomeq~"   ON)
-option(BUILD_FOCUSEQ    "Build focuseq~"   ON)
-option(BUILD_CONTOUREQ  "Build contoureq~" ON)
+option(BUILD_AIREQ      "Build aireq~"      ON)
+option(BUILD_SILKEQ     "Build silkeq~"     ON)
+option(BUILD_BLOOMEQ    "Build bloomeq~"    ON)
+option(BUILD_FOCUSEQ    "Build focuseq~"    ON)
+option(BUILD_CONTOUREQ  "Build contoureq~"  ON)
+option(BUILD_LEVELCOMP  "Build levelcomp~"  ON)
+option(BUILD_PUNCHCOMP  "Build punchcomp~"  ON)
+option(BUILD_SMOOTHCOMP "Build smoothcomp~" ON)
+option(BUILD_GLIDECOMP  "Build glidecomp~"  ON)
+option(BUILD_SNAPCOMP   "Build snapcomp~"   ON)
 
 # Superbuild
 
@@ -40,6 +44,11 @@ if(SUPERBUILD AND NOT CMAKE_CROSSCOMPILING)
         -DBUILD_BLOOMEQ=${BUILD_BLOOMEQ}
         -DBUILD_FOCUSEQ=${BUILD_FOCUSEQ}
         -DBUILD_CONTOUREQ=${BUILD_CONTOUREQ}
+        -DBUILD_LEVELCOMP=${BUILD_LEVELCOMP}
+        -DBUILD_PUNCHCOMP=${BUILD_PUNCHCOMP}
+        -DBUILD_SMOOTHCOMP=${BUILD_SMOOTHCOMP}
+        -DBUILD_GLIDECOMP=${BUILD_GLIDECOMP}
+        -DBUILD_SNAPCOMP=${BUILD_SNAPCOMP}
   )
   ExternalProject_Add(max_studio_tools_mac
     PREFIX ${CMAKE_BINARY_DIR}/mac SOURCE_DIR ${CMAKE_SOURCE_DIR}
@@ -141,14 +150,14 @@ if(BUILD_SILKEQ)
   add_library(silkeq_tilde MODULE
     silkeq/silkeq_tilde.cpp
     silkeq/dsp/silkeq_dsp.cpp
-    silkeq/dsp/Coils.cpp
+    saturation/Coils.cpp
     $<$<BOOL:${WIN32}>:toolchain/win_jit_stub.cpp>
   )
   set_target_properties(silkeq_tilde PROPERTIES PREFIX "" OUTPUT_NAME "silkeq~")
   target_include_directories(silkeq_tilde PRIVATE
     "${CMAKE_SOURCE_DIR}/silkeq/dsp"
     "${CMAKE_SOURCE_DIR}/common"
-    "${CMAKE_SOURCE_DIR}/common/oversample")
+    "${CMAKE_SOURCE_DIR}/saturation")
   configure_target(silkeq_tilde)
 
   if(APPLE)
@@ -167,7 +176,7 @@ if(BUILD_BLOOMEQ)
   add_library(bloomeq_tilde MODULE
     bloomeq/bloomeq_tilde.cpp
     bloomeq/dsp/bloomeq_dsp.cpp
-    bloomeq/dsp/Tube2.cpp
+    saturation/Tube2.cpp
     $<$<BOOL:${WIN32}>:toolchain/win_jit_stub.cpp>
     $<$<BOOL:${WIN32}>:bloomeq/bloomeq_tilde.def>
   )
@@ -176,7 +185,7 @@ if(BUILD_BLOOMEQ)
   target_include_directories(bloomeq_tilde PRIVATE
     "${CMAKE_SOURCE_DIR}/bloomeq/dsp"
     "${CMAKE_SOURCE_DIR}/common"
-    "${CMAKE_SOURCE_DIR}/common/oversample")
+    "${CMAKE_SOURCE_DIR}/saturation")
   configure_target(bloomeq_tilde)
 endif()
 
@@ -186,7 +195,7 @@ if(BUILD_FOCUSEQ)
   add_library(focuseq_tilde MODULE
     focuseq/focuseq_tilde.cpp
     focuseq/dsp/focuseq_dsp.cpp
-    focuseq/dsp/Spiral2.cpp
+    saturation/Spiral2.cpp
     $<$<BOOL:${WIN32}>:toolchain/win_jit_stub.cpp>
     $<$<BOOL:${WIN32}>:focuseq/focuseq_tilde.def>
   )
@@ -195,7 +204,7 @@ if(BUILD_FOCUSEQ)
   target_include_directories(focuseq_tilde PRIVATE
     "${CMAKE_SOURCE_DIR}/focuseq/dsp"
     "${CMAKE_SOURCE_DIR}/common"
-    "${CMAKE_SOURCE_DIR}/common/oversample")
+    "${CMAKE_SOURCE_DIR}/saturation")
   configure_target(focuseq_tilde)
 endif()
 
@@ -218,7 +227,100 @@ if(BUILD_CONTOUREQ)
   configure_target(contoureq_tilde)
 endif()
 
+# levelcomp~
 
+if(BUILD_LEVELCOMP)
+  add_library(levelcomp_tilde MODULE
+    levelcomp/levelcomp_tilde.cpp
+    levelcomp/dsp/levelcomp_dsp.cpp
+    saturation/SingleEndedTriode.cpp
+    $<$<BOOL:${WIN32}>:toolchain/win_jit_stub.cpp>
+    $<$<BOOL:${WIN32}>:levelcomp/levelcomp_tilde.def>
+  )
+  set_target_properties(levelcomp_tilde PROPERTIES PREFIX "" OUTPUT_NAME
+    "levelcomp~")
+  target_include_directories(levelcomp_tilde PRIVATE
+    "${CMAKE_SOURCE_DIR}/levelcomp/dsp"
+    "${CMAKE_SOURCE_DIR}/common"
+    "${CMAKE_SOURCE_DIR}/saturation")
+  configure_target(levelcomp_tilde)
+endif()
+
+# punchcomp~
+
+if(BUILD_PUNCHCOMP)
+  add_library(punchcomp_tilde MODULE
+    punchcomp/punchcomp_tilde.cpp
+    punchcomp/dsp/punchcomp_dsp.cpp
+    saturation/Coils.cpp
+    $<$<BOOL:${WIN32}>:toolchain/win_jit_stub.cpp>
+    $<$<BOOL:${WIN32}>:punchcomp/punchcomp_tilde.def>
+  )
+  set_target_properties(punchcomp_tilde PROPERTIES PREFIX "" OUTPUT_NAME
+    "punchcomp~")
+  target_include_directories(punchcomp_tilde PRIVATE
+    "${CMAKE_SOURCE_DIR}/punchcomp/dsp"
+    "${CMAKE_SOURCE_DIR}/common"
+    "${CMAKE_SOURCE_DIR}/saturation")
+  configure_target(punchcomp_tilde)
+endif()
+
+# smoothcomp~
+
+if(BUILD_SMOOTHCOMP)
+  add_library(smoothcomp_tilde MODULE
+    smoothcomp/smoothcomp_tilde.cpp
+    smoothcomp/dsp/smoothcomp_dsp.cpp
+    saturation/Tube2.cpp
+    $<$<BOOL:${WIN32}>:toolchain/win_jit_stub.cpp>
+    $<$<BOOL:${WIN32}>:smoothcomp/smoothcomp_tilde.def>
+  )
+  set_target_properties(smoothcomp_tilde PROPERTIES PREFIX "" OUTPUT_NAME
+    "smoothcomp~")
+  target_include_directories(smoothcomp_tilde PRIVATE
+    "${CMAKE_SOURCE_DIR}/smoothcomp/dsp"
+    "${CMAKE_SOURCE_DIR}/common"
+    "${CMAKE_SOURCE_DIR}/saturation")
+  configure_target(smoothcomp_tilde)
+endif()
+
+# glidecomp~
+
+if(BUILD_GLIDECOMP)
+  add_library(glidecomp_tilde MODULE
+    glidecomp/glidecomp_tilde.cpp
+    glidecomp/dsp/glidecomp_dsp.cpp
+    saturation/PurestDrive.cpp
+    $<$<BOOL:${WIN32}>:toolchain/win_jit_stub.cpp>
+    $<$<BOOL:${WIN32}>:glidecomp/glidecomp_tilde.def>
+  )
+  set_target_properties(glidecomp_tilde PROPERTIES PREFIX "" OUTPUT_NAME
+    "glidecomp~")
+  target_include_directories(glidecomp_tilde PRIVATE
+    "${CMAKE_SOURCE_DIR}/glidecomp/dsp"
+    "${CMAKE_SOURCE_DIR}/common"
+    "${CMAKE_SOURCE_DIR}/saturation")
+  configure_target(glidecomp_tilde)
+endif()
+
+# snapcomp~
+
+if(BUILD_SNAPCOMP)
+  add_library(snapcomp_tilde MODULE
+    snapcomp/snapcomp_tilde.cpp
+    snapcomp/dsp/snapcomp_dsp.cpp
+    saturation/Spiral2.cpp
+    $<$<BOOL:${WIN32}>:toolchain/win_jit_stub.cpp>
+    $<$<BOOL:${WIN32}>:snapcomp/snapcomp_tilde.def>
+  )
+  set_target_properties(snapcomp_tilde PROPERTIES PREFIX "" OUTPUT_NAME
+    "snapcomp~")
+  target_include_directories(snapcomp_tilde PRIVATE
+    "${CMAKE_SOURCE_DIR}/snapcomp/dsp"
+    "${CMAKE_SOURCE_DIR}/common"
+    "${CMAKE_SOURCE_DIR}/saturation")
+  configure_target(snapcomp_tilde)
+endif()
 
 set(_targets "")
 if(BUILD_AIREQ)
@@ -235,6 +337,21 @@ if(BUILD_FOCUSEQ)
 endif()
 if(BUILD_CONTOUREQ)
   list(APPEND _targets contoureq_tilde)
+endif()
+if(BUILD_LEVELCOMP)
+  list(APPEND _targets levelcomp_tilde)
+endif()
+if(BUILD_PUNCHCOMP)
+  list(APPEND _targets punchcomp_tilde)
+endif()
+if(BUILD_SMOOTHCOMP)
+  list(APPEND _targets smoothcomp_tilde)
+endif()
+if(BUILD_GLIDECOMP)
+  list(APPEND _targets glidecomp_tilde)
+endif()
+if(BUILD_SNAPCOMP)
+  list(APPEND _targets snapcomp_tilde)
 endif()
 if(_targets)
   install(TARGETS ${_targets}

@@ -1,161 +1,79 @@
 #include "dsp/aireq_dsp.h"
-#include "oversample.h"
 #include "stereo_os_base.h"
 
-using namespace c74::min;
-
-class aireq_tilde : public object<aireq_tilde>,
-                    public StereoOsBase<aireq_tilde> {
+class aireq_tilde : public base::StereoOsBase<aireq_tilde> {
  public:
-  MIN_DESCRIPTION{"Air EQ: Analog emulation EQ with air band"};
+  MIN_DESCRIPTION{"Air EQ: Analog emulation EQ with air band."};
   MIN_AUTHOR{"Alessandro Presta"};
   MIN_TAGS{"audio, eq, filter"};
   MIN_RELATED{"equalizer~, filtercoeff~, biquad~"};
 
-  inlet<> in_left{this, "(signal) left input", "signal"};
-  inlet<> in_right{this, "(signal) right input", "signal"};
-  outlet<> out_left{this, "(signal) left output", "signal"};
-  outlet<> out_right{this, "(signal) right output", "signal"};
-  outlet<> out_status{this, "latency <n>"};
-
  private:
-  AirEqDsp eq_;
-  AirEqDsp::Params params_;
+  aireq_dsp::Processor proc_;
+  aireq_dsp::Params params_;
 
  public:
-  void PrepareEngine(double os_sr) { eq_.Prepare(os_sr); }
+  void PrepareEngine(double os_sr) { proc_.Prepare(os_sr); }
 
-  void PreProcess() { eq_.SetParameters(params_); }
+  void PreProcess() { proc_.SetParams(params_); }
 
-  void ProcessBlock(double* l, double* r, int n) { eq_.ProcessBlock(l, r, n); }
+  void ProcessBlock(double* l, double* r, const double* /*sc_l*/,
+                    const double* /*sc_r*/, int num_frames) {
+    proc_.ProcessBlock(l, r, num_frames);
+  }
 
-  attribute<number> gain10{
-      this, "gain10", 0.0, title{"10 Hz Gain (dB)"},
-      description{"Bell gain for the 10 Hz band."}, range{-10.0, 10.0},
-      setter{MIN_FUNCTION{params_.gains[AirEqDsp::kBand10] =
-                              clamp(static_cast<double>(args[0]), -10.0, 10.0);
-  return args;
-}
-}
-}
-;
+  DECLARE_ATTR_DOUBLE(gain10, "10 Hz Gain (dB)",
+                      "Bell gain for the 10 Hz band.", 0.0, -10.0, 10.0,
+                      [this](double v) {
+                        params_.gains[aireq_dsp::BandType::kBand10] = v;
+                      });
 
-attribute<number> gain40{
-    this, "gain40", 0.0, title{"40 Hz Gain (dB)"},
-    description{"Bell gain for the 40 Hz band."}, range{-10.0, 10.0},
-    setter{MIN_FUNCTION{params_.gains[AirEqDsp::kBand40] =
-                            clamp(static_cast<double>(args[0]), -10.0, 10.0);
-return args;
-}
-}
-}
-;
+  DECLARE_ATTR_DOUBLE(gain40, "40 Hz Gain (dB)",
+                      "Bell gain for the 40 Hz band.", 0.0, -10.0, 10.0,
+                      [this](double v) {
+                        params_.gains[aireq_dsp::BandType::kBand40] = v;
+                      });
 
-attribute<number> gain160{
-    this, "gain160", 0.0, title{"160 Hz Gain (dB)"},
-    description{"Bell gain for the 160 Hz band."}, range{-10.0, 10.0},
-    setter{MIN_FUNCTION{params_.gains[AirEqDsp::kBand160] =
-                            clamp(static_cast<double>(args[0]), -10.0, 10.0);
-return args;
-}
-}
-}
-;
+  DECLARE_ATTR_DOUBLE(gain160, "160 Hz Gain (dB)",
+                      "Bell gain for the 160 Hz band.", 0.0, -10.0, 10.0,
+                      [this](double v) {
+                        params_.gains[aireq_dsp::BandType::kBand160] = v;
+                      });
 
-attribute<number> gain640{
-    this, "gain640", 0.0, title{"640 Hz Gain (dB)"},
-    description{"Bell gain for the 640 Hz band."}, range{-10.0, 10.0},
-    setter{MIN_FUNCTION{params_.gains[AirEqDsp::kBand640] =
-                            clamp(static_cast<double>(args[0]), -10.0, 10.0);
-return args;
-}
-}
-}
-;
+  DECLARE_ATTR_DOUBLE(gain640, "640 Hz Gain (dB)",
+                      "Bell gain for the 640 Hz band.", 0.0, -10.0, 10.0,
+                      [this](double v) {
+                        params_.gains[aireq_dsp::BandType::kBand640] = v;
+                      });
 
-attribute<number> gain2k5{
-    this, "gain2k5", 0.0, title{"2.5 kHz Shelf Gain (dB)"},
-    description{"High-shelf gain at 2.5 kHz."}, range{-10.0, 10.0},
-    setter{MIN_FUNCTION{params_.gains[AirEqDsp::kShelf2k5] =
-                            clamp(static_cast<double>(args[0]), -10.0, 10.0);
-return args;
-}
-}
-}
-;
+  DECLARE_ATTR_DOUBLE(gain2k5, "2.5 kHz Shelf Gain (dB)",
+                      "High-shelf gain at 2.5 kHz.", 0.0, -10.0, 10.0,
+                      [this](double v) {
+                        params_.gains[aireq_dsp::BandType::kShelf2k5] = v;
+                      });
 
-attribute<number> gainhi{
-    this, "gainhi", 0.0, title{"Air Shelf Gain (dB)"},
-    description{"Gain for the variable-frequency air shelf."}, range{0.0, 10.0},
-    setter{MIN_FUNCTION{params_.gains[AirEqDsp::kShelfHi] =
-                            clamp(static_cast<double>(args[0]), 0.0, 10.0);
-return args;
-}
-}
-}
-;
+  DECLARE_ATTR_DOUBLE(gainhi, "Air Shelf Gain (dB)",
+                      "Gain for the variable-frequency air shelf.", 0.0, 0.0,
+                      10.0, [this](double v) {
+                        params_.gains[aireq_dsp::BandType::kShelfHi] = v;
+                      });
 
-attribute<int> hitype{
-    this, "hitype", 0, title{"Air Shelf Frequency"},
-    description{"Corner frequency of the air shelf. "
-                "0=off  1=2.5kHz  2=5kHz  3=10kHz  4=20kHz  5=40kHz"},
-    range{0, static_cast<int>(AirEqDsp::kNumHighShelves) - 1},
-    setter{MIN_FUNCTION{
-        params_.high_shelf = static_cast<AirEqDsp::HighShelf>(
-            clamp(static_cast<int>(args[0]), 0,
-                  static_cast<int>(AirEqDsp::kNumHighShelves) - 1));
-return args;
-}
-}
-}
-;
+  DECLARE_ATTR_INT(
+      hitype, "Air Shelf Frequency",
+      "Corner frequency of the air shelf. "
+      "0 = Off, 1 = 2.5kHz, 2 = 5kHz, 3 = 10kHz, 4 = 20kHz, 5 = 40kHz",
+      0, 0, static_cast<int>(aireq_dsp::HighShelf::kNumHighShelves) - 1,
+      [this](int v) {
+        params_.high_shelf = static_cast<aireq_dsp::HighShelf>(v);
+      });
 
-attribute<int> keepgain{
-    this, "keepgain", 0, title{"Keep Gain"},
-    description{"When 1, output level is compensated to preserve loudness."},
-    range{0, 1},
-    setter{MIN_FUNCTION{params_.keep_gain = (static_cast<int>(args[0]) != 0);
-return args;
-}
-}
-}
-;
+  DECLARE_ATTR_BOOL(keepgain, "Keep Gain",
+                    "When 1, output level is compensated to preserve loudness.",
+                    false, [this](bool v) { params_.keep_gain = v; });
 
-attribute<int> phase_inv{
-    this, "phase_inv", 0, title{"Phase Invert"},
-    description{"Phase invert: 1 = inverted, 0 = normal."}, range{0, 1},
-    setter{MIN_FUNCTION{params_.phase_inv = (static_cast<int>(args[0]) != 0);
-return args;
-}
-}
-}
-;
-
-attribute<int> oversample{
-    this, "oversample", 0, title{"Oversampling"},
-    description{"Oversampling ratio. 0=off  1=2x  2=4x  3=8x."},
-    range{0, oversample::kMaxOversampleIndex},
-    setter{MIN_FUNCTION{const int v = clamp(static_cast<int>(args[0]), 0,
-                                            oversample::kMaxOversampleIndex);
-const int latency = ReconfigureOversample(v);
-if (latency >= 0) out_status.send("latency", latency);
-return {v};
-}
-}
-}
-;
-
-message<> dspsetup{
-    this, "dspsetup",
-    MIN_FUNCTION{const int latency = DspSetup(static_cast<double>(args[0]),
-                                              static_cast<int>(args[1]),
-                                              static_cast<int>(oversample));
-out_status.send("latency", latency);
-return {latency};
-}
-}
-;
-}
-;
+  DECLARE_ATTR_BOOL(phase_inv, "Phase Invert",
+                    "Phase invert: 1 = inverted, 0 = normal.", false,
+                    [this](bool v) { params_.phase_inv = v; });
+};
 
 MIN_EXTERNAL(aireq_tilde);

@@ -1,5 +1,5 @@
 // This file is derived from the original Baxandall by Airwindows.
-// Copyright (c) Airwindows (MIT license)
+// Copyright (c) Airwindows (MIT license).
 
 #pragma once
 

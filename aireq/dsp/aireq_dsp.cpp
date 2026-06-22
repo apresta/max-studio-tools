@@ -1,5 +1,5 @@
 // This file is derived from the original Luftikus by lkjb.
-// Copyright (c) lkjb (MIT license)
+// Copyright (c) lkjb (MIT license).
 
 #include "aireq_dsp.h"
 
@@ -8,6 +8,8 @@
 
 #include "denormal_guard.h"
 #include "dsp_math.h"
+
+namespace aireq_dsp {
 
 namespace {
 
@@ -28,32 +30,31 @@ constexpr double kGainFloor = 500.0;
 
 }  // namespace
 
-AirEqDsp::AirEqDsp() : sample_rate_(coeffs::k44100) {
-  params_.gains.fill(0.0);
-  Prepare(44100.0);
-}
-
-void AirEqDsp::SetParameters(const Params& p) noexcept {
-  if (p.high_shelf != params_.high_shelf) {
-    params_.high_shelf = p.high_shelf;
-    SetupFilter(kShelfHi);
-  }
+void Processor::SetParams(const Params& p) noexcept {
+  const bool shelf_changed = p.high_shelf != params_.high_shelf;
   params_ = p;
+  if (shelf_changed) SetupFilter(BandType::kShelfHi);
 }
 
-void AirEqDsp::Prepare(double sample_rate) noexcept {
+void Processor::Prepare(double sample_rate) noexcept {
   sample_rate_ = coeffs::SampleRateToEnum(sample_rate);
   for (auto& bq : biquads_) bq.Clear();
-  for (int i = 0; i < kNumTypes; ++i) SetupFilter(static_cast<Type>(i));
+  for (int i = 0; i < static_cast<int>(BandType::kNumTypes); ++i)
+    SetupFilter(static_cast<BandType>(i));
 }
 
-void AirEqDsp::ProcessBlock(double* out_l, double* out_r, int num_frames) {
-  ScopedDenormalGuard denormal_guard;
-  double g[kNumTypes];
-  double pg[kNumTypes];
+void Processor::ProcessBlock(double* out_l, double* out_r,
+                             int num_frames) noexcept {
+  dsp::ScopedDenormalGuard denormal_guard;
 
-  for (int i = 0; i < kShelfHi; ++i) {
-    const double x = params_.gains[i] / 20.0 + 0.5;
+  constexpr int kShelfHiIdx = BandType::kShelfHi;
+  constexpr int kNumTypesIdx = BandType::kNumTypes;
+
+  double g[kNumTypesIdx];
+  double pg[kNumTypesIdx];
+
+  for (int i = 0; i < kShelfHiIdx; ++i) {
+    const double x = (params_.gains[i] / 20.0) + 0.5;
 
     if (x > 0.5) {
       g[i] =
@@ -71,23 +72,25 @@ void AirEqDsp::ProcessBlock(double* out_l, double* out_r, int num_frames) {
   }
 
   {
-    const double x = params_.gains[kShelfHi] / 10.0;
-    g[kShelfHi] =
+    const double x = params_.gains[kShelfHiIdx] / 10.0;
+    g[kShelfHiIdx] =
         0.5 * kAmplitude /
         (kDenomOffset +
-         (x <= 0.5 ? kGainFloor - kLinSlopeHi * x
-                   : kExpScaleHi * std::exp(-kExpRateHi * x) - kExpOffsetHi));
-    pg[kShelfHi] = 1.0;
+         (x <= 0.5 ? kGainFloor - (kLinSlopeHi * x)
+                   : (kExpScaleHi * std::exp(-kExpRateHi * x)) - kExpOffsetHi));
+    pg[kShelfHiIdx] = 1.0;
   }
 
   double dc_gain = 0.0;
-  for (int n = 0; n < kNumTypes; ++n) {
-    if (n != kShelfHi || params_.high_shelf != kHighOff) dc_gain += g[n];
+  for (int n = 0; n < kNumTypesIdx; ++n) {
+    if (n != kShelfHiIdx || params_.high_shelf != HighShelf::kHighOff)
+      dc_gain += g[n];
   }
 
   const double global_gain =
       params_.keep_gain ? kGainNormKept / dc_gain : kGainNorm;
-  const double shelf_weight = (params_.high_shelf != kHighOff) ? 1.0 : 0.0;
+  const double shelf_weight =
+      (params_.high_shelf != HighShelf::kHighOff) ? 1.0 : 0.0;
 
   if (params_.phase_inv) dsp::InvertPhase(out_l, out_r, num_frames);
 
@@ -97,49 +100,59 @@ void AirEqDsp::ProcessBlock(double* out_l, double* out_r, int num_frames) {
 
     // High shelf band (conditionally weighted).
     {
-      const dsp::Vec2 band = biquads_[kShelfHi].Tick(dry);
-      mix = (band * pg[kShelfHi] + dry) * (g[kShelfHi] * shelf_weight);
+      const dsp::Vec2 band = biquads_[kShelfHiIdx].Tick(dry);
+      mix = (band * pg[kShelfHiIdx] + dry) * (g[kShelfHiIdx] * shelf_weight);
     }
 
-    for (int n = 0; n < kShelfHi; ++n) {
+    for (int n = 0; n < kShelfHiIdx; ++n) {
       const dsp::Vec2 band = biquads_[n].Tick(dry);
       mix = mix + (band * pg[n] + dry) * g[n];
     }
 
     const dsp::Vec2 out = mix * global_gain;
-    out_l[i] = out.l();
-    out_r[i] = out.r();
+    out_l[i] = out.L();
+    out_r[i] = out.R();
   }
 }
 
-void AirEqDsp::SetupFilter(Type type) noexcept {
-  double b[3] = {0, 0, 0};
-  double a[3] = {1, 0, 0};
+void Processor::SetupFilter(BandType type) noexcept {
+  double b[3] = {0.0, 0.0, 0.0};
+  double a[3] = {1.0, 0.0, 0.0};
 
-  static constexpr coeffs::Type kFixedMap[kShelfHi] = {
-      coeffs::kBand10,  coeffs::kBand40,   coeffs::kBand160,
-      coeffs::kBand640, coeffs::kShelf2k5,
+  constexpr int kShelfHiIdx = static_cast<int>(BandType::kShelfHi);
+
+  static constexpr coeffs::FilterType kFixedMap[kShelfHiIdx] = {
+      coeffs::FilterType::kBand10,   coeffs::FilterType::kBand40,
+      coeffs::FilterType::kBand160,  coeffs::FilterType::kBand640,
+      coeffs::FilterType::kShelf2k5,
   };
 
-  if (type < kShelfHi) {
-    coeffs::SetCoeffs(kFixedMap[type], sample_rate_, b, a);
+  if (type < BandType::kShelfHi) {
+    SetCoeffs(kFixedMap[type], sample_rate_, b, a);
   } else {
-    static constexpr coeffs::Type kShelfMap[kNumHighShelves] = {
-        coeffs::kBand10,  // placeholder; zero-output biquad used instead
-        coeffs::kA2k5,   coeffs::kA5k,  coeffs::kA10k,
-        coeffs::kA20k,   coeffs::kA40k,
-    };
+    static constexpr coeffs::FilterType
+        kShelfMap[static_cast<int>(HighShelf::kNumHighShelves)] = {
+            coeffs::FilterType::kBand10,  // placeholder; zero-output biquad
+                                          // used instead
+            coeffs::FilterType::kA2k5,
+            coeffs::FilterType::kA5k,
+            coeffs::FilterType::kA10k,
+            coeffs::FilterType::kA20k,
+            coeffs::FilterType::kA40k,
+        };
 
-    if (params_.high_shelf == kHighOff) {
+    if (params_.high_shelf == HighShelf::kHighOff) {
       b[0] = b[1] = b[2] = 0.0;
       a[0] = 1.0;
       a[1] = a[2] = 0.0;
     } else {
-      coeffs::SetCoeffs(kShelfMap[params_.high_shelf], sample_rate_, b,
-                              a);
+      SetCoeffs(kShelfMap[static_cast<int>(params_.high_shelf)], sample_rate_,
+                b, a);
     }
   }
 
   assert(a[0] == 1.0);
-  biquads_[type].SetBiquad(b[0], b[1], b[2], a[1], a[2]);
+  biquads_[static_cast<int>(type)].SetBiquad(b[0], b[1], b[2], a[1], a[2]);
 }
+
+}  // namespace aireq_dsp

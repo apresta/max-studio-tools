@@ -5,7 +5,7 @@
 namespace dsp {
 
 struct BiquadState {
-  Vec2 x1{}, x2{}, y1{}, y2{};
+  Vec2 x1, x2, y1, y2;
 
   void Clear() noexcept { x1 = x2 = y1 = y2 = Vec2{}; }
 

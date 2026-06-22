@@ -1,46 +1,16 @@
 #pragma once
 
-#include <cmath>
-
+#include "biquad_coeffs.h"
 #include "biquad_state.h"
 #include "dsp_math.h"
 
 namespace dsp {
 
-enum class ButType { LowPass, HighPass };
+enum class ButType { kLowPass, kHighPass };
 
-struct ButFilter {
-  double sr_ = 44100.0;
-  BiquadState st_;
-
-  // Feedforward coefficients (b0/b1/b2 in DF-I notation).
-  double b0_ = 0.0, b1_ = 0.0, b2_ = 0.0;
-
-  // Feedback coefficients (a1/a2 in DF-I notation).
-  double a1_ = 0.0, a2_ = 0.0;
-  ButType type_;
-
+class ButFilter {
+ public:
   explicit ButFilter(ButType t) noexcept : type_(t) {}
-
-  // Recompute Butterworth biquad coefficients for freq_hz.
-  void ComputeCoeffs(double freq_hz) noexcept {
-    const double ny = sr_ * 0.49;
-    if (freq_hz < 1.0) freq_hz = 1.0;
-    if (freq_hz > ny) freq_hz = ny;
-
-    // LP uses cot(w_0/2); HP uses tan(w_0/2).
-    const double c = (type_ == ButType::LowPass)
-                         ? 1.0 / std::tan((kPi / sr_) * freq_hz)
-                         : std::tan((kPi / sr_) * freq_hz);
-    const double c2 = c * c;
-
-    const double inv_a0 = 1.0 / (1.0 + kSqrt2 * c + c2);
-    b0_ = b2_ = inv_a0;
-    b1_ = (type_ == ButType::LowPass) ? 2.0 * inv_a0 : -2.0 * inv_a0;
-    a1_ = (type_ == ButType::LowPass) ? b1_ * (1.0 - c2)
-                                      : 2.0 * inv_a0 * (c2 - 1.0);
-    a2_ = inv_a0 * (1.0 - kSqrt2 * c + c2);
-  }
 
   void Init(double freq_hz, double sr) noexcept {
     sr_ = sr;
@@ -54,6 +24,36 @@ struct ButFilter {
   Vec2 Process(Vec2 sig) noexcept {
     return st_.Tick(sig, b0_, b1_, b2_, a1_, a2_);
   }
+
+ private:
+  // Recompute Butterworth biquad coefficients for freq_hz.
+  // Delegates to the RBJ-cookbook biquad at Q = kSqrt2_2 = 1/sqrt(2),
+  // which gives the maximally-flat (Butterworth) response.
+  // BiquadLowPass/BiquadHighPass handle the Nyquist-margin clamp.
+  void ComputeCoeffs(double freq_hz) noexcept {
+    double b[3];
+    double a[3];
+    if (type_ == ButType::kLowPass) {
+      BiquadLowPass(freq_hz, kHalfSqrt2, sr_, b, a);
+    } else {
+      BiquadHighPass(freq_hz, kHalfSqrt2, sr_, b, a);
+    }
+    b0_ = b[0];
+    b1_ = b[1];
+    b2_ = b[2];
+    a1_ = a[1];
+    a2_ = a[2];
+  }
+
+  double sr_ = 44100.0;
+  BiquadState st_;
+
+  // Feedforward coefficients (b0/b1/b2 in DF-I notation).
+  double b0_ = 0.0, b1_ = 0.0, b2_ = 0.0;
+
+  // Feedback coefficients (a1/a2 in DF-I notation).
+  double a1_ = 0.0, a2_ = 0.0;
+  ButType type_;
 };
 
 }  // namespace dsp

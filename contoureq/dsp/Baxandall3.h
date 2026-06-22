@@ -1,11 +1,13 @@
 // This file is derived from the original Baxandall3 by Airwindows.
-// Copyright (c) Airwindows (MIT license)
+// Copyright (c) Airwindows (MIT license).
 
 #pragma once
 
 #include "biquad_coeffs.h"
 #include "biquad_state.h"
 #include "vec.h"
+
+namespace contoureq_dsp {
 
 // Bessel-maximally-flat Q = 1/sqrt(3).
 static constexpr double kBesselQ = 0.57735026919;
@@ -64,3 +66,5 @@ class Baxandall3 {
 
   void ProcessSample(double& left, double& right, const CoeffVec2& cv) noexcept;
 };
+
+}  // namespace contoureq_dsp
