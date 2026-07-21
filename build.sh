@@ -14,9 +14,6 @@ if [[ "${CLEAN:-0}" == "1" ]]; then
   rm -rf build/
 fi
 
-echo "==> Updating submodules"
-git submodule update --init --recursive
-
 if [[ ! -x "${LLVM_MINGW_SENTINEL}" ]]; then
   echo "==> Fetching llvm-mingw"
   LLVM_MINGW_VERSION=$(
