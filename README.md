@@ -4,16 +4,16 @@ This is a suite of Max/MSP externals covering essential studio gear.
 
 It includes the following device emulations:
 
-- Air EQ: Transparent equalizer with broad high-frequency band
-- Bloom EQ: Passive equalizer with dual boost/cut bands and tube saturation
-- Contour EQ: Wide-shelf equalizer with two model variants for broad tonal shaping
-- Focus EQ: Solid state equalizer with precise control and console saturation
-- Silk EQ: Smooth, musical equalizer with transformer saturation
-- Glide Compressor: Optical compressor with flexible controls for transparent shaping
-- Level Compressor: Optical compressor with smooth leveling and program-dependent timing
-- Punch Compressor: FET compressor with ultra-fast attack and aggressive character
-- Smooth Compressor: Vari-mu compressor with vintage character and program-dependent compression
-- Snap Compressor: VCA compressor with precise dynamic control and clean transient shaping
+- **Air EQ**: Transparent equalizer with broad high-frequency band
+- **Bloom EQ**: Passive equalizer with dual boost/cut bands and tube saturation
+- **Contour EQ**: Wide-shelf equalizer with two model variants for broad tonal shaping
+- **Focus EQ**: Solid state equalizer with precise control and console saturation
+- **Silk EQ**: Smooth, musical equalizer with transformer saturation
+- **Glide Compressor**: Optical compressor with flexible controls for transparent shaping
+- **Level Compressor**: Optical compressor with smooth leveling and program-dependent timing
+- **Punch Compressor**: FET compressor with ultra-fast attack and aggressive character
+- **Smooth Compressor**: Vari-mu compressor with vintage character and program-dependent compression
+- **Snap Compressor**: VCA compressor with precise dynamic control and clean transient shaping
 
 Each device supports optional oversampling up to 8x.
 
