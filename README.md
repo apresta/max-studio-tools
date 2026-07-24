@@ -41,3 +41,4 @@ This repository contains modified (or ported) code from the following projects:
 - <https://github.com/D4p0up/eq1979>
 - <https://github.com/aim-qmul/4a2a>
 - <https://github.com/JClones/JSFXClones>
+- <https://github.com/TukanStudios/TUKAN_STUDIOS_PLUGINS>
